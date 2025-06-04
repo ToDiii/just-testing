@@ -46,7 +46,10 @@ This Python script is designed to scrape announcements related to new constructi
     ```
     requests
     beautifulsoup4
-    PyPDF2
+    pypdf2
+    fastapi
+    uvicorn
+    sqlalchemy
     ```
 
 ## Running the Scraper
