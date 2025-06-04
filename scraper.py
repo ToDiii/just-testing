@@ -103,7 +103,9 @@ def extract_data_from_html_page(page_url, html_content, source_municipality_name
     content_area = None
     for selector in main_content_selectors:
         if '#' in selector:
-            content_area = soup.find(id=selector.strip('#'))
+            tag, elem_id = selector.split('#', 1)
+            # split at '#' to handle selectors like 'div#main'
+            content_area = soup.find(tag or True, id=elem_id)
         elif '.' in selector:
             if selector.startswith('.'):
                 tag_name = 'div'
