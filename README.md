@@ -119,6 +119,17 @@ uvicorn webapp.main:app --reload
 Open `http://localhost:8000` in your browser to access the interface. Scraped
 results will be stored in a local SQLite database named `webapp.db`.
 
+After clicking **Run Scrape** the application processes each target one after
+the other. A small progress list shows a check mark and timestamp for every
+finished site. Newly scraped entries appear highlighted in green in the results
+table.
+
+The table supports filtering by date range, target site and free text. Choose a
+start and end date, select a site or type a keyword and click **Apply Filters**.
+For example to show announcements from January 2024 only for site ID 1 you can
+select the range `2024-01-01` to `2024-01-31` and the desired site in the drop
+down.
+
 Running with Docker
 
 You can also build a Docker image and run the scraper in a container. This is useful for ensuring a consistent environment and managing dependencies easily.
