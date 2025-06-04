@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+import os
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
@@ -16,7 +17,8 @@ templates = Jinja2Templates(directory="webapp/templates")
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Scraper Web API")
-app.mount("/static", StaticFiles(directory="webapp/static"), name="static")
+if os.path.isdir("webapp/static"):
+    app.mount("/static", StaticFiles(directory="webapp/static"), name="static")
 
 
 def get_db():

@@ -1,22 +1,16 @@
-# Use an official Python runtime as a parent image
 FROM python:3.9-slim
 
-# Set the working directory in the container
 WORKDIR /app
 
-# Copy the dependencies file to the working directory
 COPY requirements.txt .
 
-# Install any needed packages specified in requirements.txt
-# --no-cache-dir ensures that pip doesn't store the downloaded packages, keeping the image smaller
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the scraper script and web application into the container
-COPY scraper.py ./
+COPY scraper.py ./scraper.py
 COPY webapp ./webapp
 
-# Expose the port used by the FastAPI application
+RUN mkdir -p webapp/static
+
 EXPOSE 8000
 
-# Specify the command to run on container start
 CMD ["uvicorn", "webapp.main:app", "--host", "0.0.0.0", "--port", "8000"]
