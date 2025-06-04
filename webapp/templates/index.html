@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Scraper Dashboard</title>
+    <script>
+        async function loadTargets() {
+            const res = await fetch('/targets/');
+            const data = await res.json();
+            const list = document.getElementById('targets');
+            list.innerHTML = '';
+            for (const t of data) {
+                const li = document.createElement('li');
+                li.textContent = t.name ? t.name + ' - ' + t.url : t.url;
+                list.appendChild(li);
+            }
+        }
+
+        async function addTarget() {
+            const url = document.getElementById('url').value;
+            const name = document.getElementById('name').value;
+            await fetch('/targets/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({url, name})
+            });
+            document.getElementById('url').value = '';
+            document.getElementById('name').value = '';
+            loadTargets();
+        }
+
+        async function runScrape() {
+            document.getElementById('scrape-status').textContent = 'Running...';
+            await fetch('/scrape', {method: 'POST'});
+            document.getElementById('scrape-status').textContent = 'Done';
+            loadResults();
+        }
+
+        async function loadResults() {
+            const res = await fetch('/results/');
+            const data = await res.json();
+            const table = document.getElementById('results');
+            table.innerHTML = '<tr><th>Title</th><th>Source</th><th>Date</th></tr>';
+            for (const r of data) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td><a href="${r.url}" target="_blank">${r.title}</a></td><td>${r.source}</td><td>${r.publication_date}</td>`;
+                table.appendChild(tr);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTargets();
+            loadResults();
+        });
+    </script>
+</head>
+<body>
+    <h1>Scraper Dashboard</h1>
+    <div>
+        <input type="text" id="name" placeholder="Name (optional)">
+        <input type="text" id="url" placeholder="Site URL">
+        <button onclick="addTarget()">Add Target</button>
+    </div>
+    <h2>Targets</h2>
+    <ul id="targets"></ul>
+    <button onclick="runScrape()">Run Scrape</button> <span id="scrape-status"></span>
+    <h2>Results</h2>
+    <table id="results" border="1"></table>
+</body>
+</html>
