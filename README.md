@@ -109,8 +109,6 @@ Running with Docker
 
 You can also build a Docker image and run the scraper in a container. This is useful for ensuring a consistent environment and managing dependencies easily.
 
-You can also build a Docker image and run the scraper in a container. This is useful for ensuring a consistent environment and managing dependencies easily.
-
 1. Build the Docker Image:
 
 Navigate to the project directory (the one containing Dockerfile, scraper.py, and requirements.txt) in your terminal and run:
