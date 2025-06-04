@@ -105,8 +105,11 @@ def extract_data_from_html_page(page_url, html_content, source_municipality_name
         if '#' in selector:
             content_area = soup.find(id=selector.strip('#'))
         elif '.' in selector:
-            tag_name = selector.split('.')[0] if selector.startswith(tuple(['div.','p.','span.'])) else 'div'
-            class_name = selector.split('.',1)[1]
+            if selector.startswith('.'):
+                tag_name = 'div'
+                class_name = selector[1:]
+            else:
+                tag_name, class_name = selector.split('.', 1)
             content_area = soup.find(tag_name, class_=re.compile(r'\b' + re.escape(class_name) + r'\b', re.I))
         elif '[' in selector:
             tag_name = selector.split('[')[0]
