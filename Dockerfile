@@ -11,7 +11,7 @@ COPY requirements.txt .
 # --no-cache-dir ensures that pip doesn't store the downloaded packages, keeping the image smaller
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the content of the local src directory to the working directory in the container
+# Copy the scraper script into the container
 COPY scraper.py .
 
 # Specify the command to run on container start
