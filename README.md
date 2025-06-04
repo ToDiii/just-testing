@@ -151,6 +151,38 @@ Explanation of the docker run command:
 
 After the container finishes running, you will find extracted_data.json and extracted_data.csv in the output_data directory on your host system.
 
+## Running on a Synology NAS via Docker
+
+If you have a Synology NAS with the Docker package installed, you can run the scraper directly on the NAS. The steps mirror the generic Docker workflow with a few Synology specifics:
+
+1. **Install Docker on the NAS**
+   - Open the **Package Center** in DSM and install the Docker package.
+
+2. **Copy the project onto the NAS**
+   - Clone or copy this repository to a folder on the NAS, for example `/volume1/docker/german_bau_scraper`.
+
+3. **Build the Docker image**
+   - Open an SSH session or use the Docker GUI and run in the project folder:
+     ```bash
+     docker build -t german-bau-scraper .
+     ```
+
+4. **Prepare a directory for the output**
+   - Decide where the results should be stored, e.g. `/volume1/docker/output_data`, and create it if it does not exist:
+     ```bash
+     mkdir -p /volume1/docker/output_data
+     ```
+
+5. **Run the container**
+   - Start the scraper and mount the output directory:
+     ```bash
+     docker run --rm -v /volume1/docker/output_data:/app german-bau-scraper
+     ```
+   - You can also configure the volume mount through the Synology Docker GUI (“Volume” tab, container path `/app`).
+
+6. **Retrieve the results**
+   - After the container finishes, you'll find `extracted_data.json` and `extracted_data.csv` in `/volume1/docker/output_data` on your NAS.
+
 ## Running Tests
 
 To run the unit tests, make sure `pytest` is installed and then execute:
