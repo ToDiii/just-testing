@@ -152,3 +152,13 @@ Explanation of the docker run command:
         :/app: Path inside the container where the host directory will be mounted. Since scraper.py saves files to its current directory (/app inside the container), the output files will appear in your output_data folder on your host.
 
 After the container finishes running, you will find extracted_data.json and extracted_data.csv in the output_data directory on your host system.
+
+## Running Tests
+
+To run the unit tests, make sure `pytest` is installed and then execute:
+
+```bash
+pytest
+```
+
+All tests should pass and confirm that the scraper's helper functions work as expected.
