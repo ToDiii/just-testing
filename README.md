@@ -55,9 +55,11 @@ Once the setup is complete, you can run the scraper from within the project dire
 
 ```bash
 python3 scraper.py
+```
 
 The script will print progress messages to the console, including which sites are being processed, links being followed, and data being extracted or saved.
-Output Files
+
+### Output Files
 
 The scraper generates two output files in the same directory as scraper.py:
 
@@ -105,6 +107,18 @@ Important Considerations
     Error Handling: The script includes basic error handling for network requests and file operations. For production use, you might want to enhance this (e.g., more detailed logging, retry mechanisms).
 
 Happy scraping! Remember to be respectful of the websites you are scraping.
+## Running the Web Interface
+
+A simple FastAPI application for managing target sites and triggering scrapes is
+located in the `webapp/` directory. You can start it during development with:
+
+```bash
+uvicorn webapp.main:app --reload
+```
+
+Open `http://localhost:8000` in your browser to access the interface. Scraped
+results will be stored in a local SQLite database named `webapp.db`.
+
 Running with Docker
 
 You can also build a Docker image and run the scraper in a container. This is useful for ensuring a consistent environment and managing dependencies easily.
@@ -125,31 +139,34 @@ mkdir output_data
 
 3. Run the Docker Container:
 
-Execute the following command to run the scraper. This command mounts the output_data directory you created into the /app directory within the container (which is the working directory where scraper.py runs and saves its files).
+Run the container and expose port `8000` to access the FastAPI interface. Mount a local directory to persist the `webapp.db` database and output files.
 
-    For macOS/Linux (using $(pwd) for current directory):
+For macOS/Linux (using `$(pwd)` for the current directory):
 
-    docker run --rm -v "$(pwd)/output_data:/app" german-bau-scraper
+```bash
+docker run --rm -p 8000:8000 -v "$(pwd)/output_data:/app" german-bau-scraper
+```
 
-    (The --rm flag automatically removes the container when it exits.)
+(The `--rm` flag automatically removes the container when it exits.)
 
-    For Windows (using %cd% for current directory with Command Prompt, or ${PWD} with PowerShell):
-        Command Prompt:
+For Windows (Command Prompt):
 
-        docker run --rm -v "%cd%\output_data:/app" german-bau-scraper
+```bash
+docker run --rm -p 8000:8000 -v "%cd%\output_data:/app" german-bau-scraper
+```
 
-        PowerShell:
+PowerShell:
 
-        docker run --rm -v "${PWD}/output_data:/app" german-bau-scraper
+```bash
+docker run --rm -p 8000:8000 -v "${PWD}/output_data:/app" german-bau-scraper
+```
 
-Explanation of the docker run command:
+Explanation of the `docker run` command:
+  - `--rm` removes the container filesystem when it exits.
+  - `-p 8000:8000` maps container port 8000 so you can browse to `http://localhost:8000`.
+  - `-v "$(pwd)/output_data:/app"` mounts a directory to persist `webapp.db` and output files.
 
-    --rm: Automatically removes the container filesystem when the container exits. This is good for cleanup for tasks that run and then stop.
-    -v "$(pwd)/output_data:/app" (or Windows equivalent): This is the volume mount.
-        $(pwd)/output_data (or %cd%\output_data or ${PWD}/output_data): Path to the directory on your host machine.
-        :/app: Path inside the container where the host directory will be mounted. Since scraper.py saves files to its current directory (/app inside the container), the output files will appear in your output_data folder on your host.
-
-After the container finishes running, you will find extracted_data.json and extracted_data.csv in the output_data directory on your host system.
+After the container finishes running, you will find `webapp.db`, `extracted_data.json` and `extracted_data.csv` in the output_data directory on your host system.
 
 ## Running on a Synology NAS via Docker
 
@@ -176,7 +193,7 @@ If you have a Synology NAS with the Docker package installed, you can run the sc
 5. **Run the container**
    - Start the scraper and mount the output directory:
      ```bash
-     docker run --rm -v /volume1/docker/output_data:/app german-bau-scraper
+     docker run --rm -p 8000:8000 -v /volume1/docker/output_data:/app german-bau-scraper
      ```
    - You can also configure the volume mount through the Synology Docker GUI (“Volume” tab, container path `/app`).
 

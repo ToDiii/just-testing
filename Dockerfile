@@ -11,8 +11,12 @@ COPY requirements.txt .
 # --no-cache-dir ensures that pip doesn't store the downloaded packages, keeping the image smaller
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the scraper script into the container
-COPY scraper.py .
+# Copy the scraper script and web application into the container
+COPY scraper.py ./
+COPY webapp ./webapp
+
+# Expose the port used by the FastAPI application
+EXPOSE 8000
 
 # Specify the command to run on container start
-CMD ["python", "scraper.py"]
+CMD ["uvicorn", "webapp.main:app", "--host", "0.0.0.0", "--port", "8000"]
