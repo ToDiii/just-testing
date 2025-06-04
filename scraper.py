@@ -12,6 +12,13 @@ import time # For polite scraping
 # Global list of keywords (lowercase for case-insensitive matching)
 KEYWORDS = ["baugebiet", "bebauungsplan", "flächennutzungsplan", "grundstück", "bauplatz", "bauland", "ausschreibung", "verkauf", "entwicklung", "neubaugebiet", "sanierung"]
 
+# Predefined target URLs for the FastAPI app
+PREDEFINED_TARGETS = [
+    "https://www.taufkirchen.de/",
+    "https://www.taufkirchen.de/stellenausschreibungen",
+    "https://www.taufkirchen.de/marktgemeinde/baugrundstuecke",
+]
+
 # --- Network Function ---
 def fetch_html(url):
     """Fetches HTML content from a URL."""

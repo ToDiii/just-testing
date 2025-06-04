@@ -135,3 +135,25 @@ def read_results(
         .limit(limit)
         .all()
     )
+
+
+
+def init_targets(db: Session) -> None:
+    new_targets = []
+    for url in scraper.PREDEFINED_TARGETS:
+        if not db.query(models.TargetSite).filter(models.TargetSite.url == url).first():
+            new_targets.append(models.TargetSite(url=url))
+    if new_targets:
+        db.add_all(new_targets)
+        db.commit()
+        for target in new_targets:
+            print(f"Added target URL: {target.url}")
+
+
+@app.on_event("startup")
+def startup_populate():
+    db = SessionLocal()
+    try:
+        init_targets(db)
+    finally:
+        db.close()
