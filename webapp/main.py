@@ -3,6 +3,9 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 import os
+import subprocess
+import time
+from pathlib import Path
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
@@ -137,6 +140,44 @@ def read_results(
         .limit(limit)
         .all()
     )
+
+
+@app.post(
+    "/run-scraper",
+    summary="Run the scraper script and save the results to output_data",
+)
+def run_scraper_endpoint():
+    """Execute scraper.py synchronously and validate output files."""
+    project_root = Path(__file__).resolve().parent.parent
+    start = time.time()
+    try:
+        result = subprocess.run(
+            ["python", "scraper.py"],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Scraper failed with exit code {exc.returncode}: {exc.stderr}",
+        )
+
+    json_file = project_root / "output_data" / "extracted_data.json"
+    csv_file = project_root / "output_data" / "extracted_data.csv"
+    if not json_file.exists() or not csv_file.exists():
+        raise HTTPException(
+            status_code=500,
+            detail="Required output files were not generated",
+        )
+
+    duration = time.time() - start
+    return {
+        "status": "success",
+        "stdout": result.stdout,
+        "duration": duration,
+    }
 
 
 
