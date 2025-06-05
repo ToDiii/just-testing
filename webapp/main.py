@@ -11,6 +11,7 @@ from . import models, schemas
 from .database import SessionLocal, engine
 
 import scraper
+from .routes import router as api_router
 
 templates = Jinja2Templates(directory="webapp/templates")
 
@@ -19,6 +20,7 @@ models.Base.metadata.create_all(bind=engine)
 app = FastAPI(title="Scraper Web API")
 if os.path.isdir("webapp/static"):
     app.mount("/static", StaticFiles(directory="webapp/static"), name="static")
+app.include_router(api_router)
 
 
 def get_db():
