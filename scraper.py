@@ -412,8 +412,9 @@ if __name__ == "__main__":
     MAX_HTML_LINKS_PER_SITE = 15
     MAX_PDF_LINKS_PER_SITE = 10
     POLITENESS_DELAY_SECONDS = 0.5
-    json_output_file = "extracted_data.json"
-    csv_output_file = "extracted_data.csv"
+    os.makedirs("output_data", exist_ok=True)
+    json_output_file = os.path.join("output_data", "extracted_data.json")
+    csv_output_file = os.path.join("output_data", "extracted_data.csv")
 
     for site_name, site_url in TARGET_SITES.items():
         print(f"--- Processing {site_name} ({site_url}) ---")
