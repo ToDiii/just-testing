@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Targets</title>
+    <script>
+        async function loadTargets() {
+            const res = await fetch('/targets/');
+            const data = await res.json();
+            const list = document.getElementById('targets');
+            list.innerHTML = '';
+            for (const t of data) {
+                const li = document.createElement('li');
+                li.innerHTML = `<span>${t.name ? t.name + ' - ' + t.url : t.url}</span> <button onclick="deleteTarget(${t.id})">🗑️</button>`;
+                list.appendChild(li);
+            }
+        }
+        function deleteTarget(id) {
+            fetch(`/targets/${id}`, { method: 'DELETE' })
+              .then(res => res.json())
+              .then(() => location.reload());
+        }
+        document.addEventListener('DOMContentLoaded', loadTargets);
+    </script>
+</head>
+<body>
+    <h1>Targets</h1>
+    <ul id="targets"></ul>
+</body>
+</html>
