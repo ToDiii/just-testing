@@ -16,6 +16,10 @@ This Python script is designed to scrape announcements related to new constructi
 - Saves all extracted data into `extracted_data.json` (JSON format) and `extracted_data.csv` (CSV format).
 - Includes basic error handling and polite scraping practices (configurable delay).
 
+## Voraussetzungen
+
+- Das Docker-Image installiert automatisch tesseract-ocr und poppler-utils für OCR-Funktionalität.
+
 ## Setup and Installation
 
 1.  **Create a Project Directory:**
@@ -132,6 +136,11 @@ start and end date, select a site or type a keyword and click **Apply Filters**.
 For example to show announcements from January 2024 only for site ID 1 you can
 select the range `2024-01-01` to `2024-01-31` and the desired site in the drop
 down.
+
+## API-Endpunkte
+
+- `DELETE /targets/{target_id}`
+  → Entfernt ein Ziel aus der Datenbank
 
 Running with Docker
 

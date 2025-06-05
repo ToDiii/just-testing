@@ -8,3 +8,5 @@ sqlalchemy
 
 jinja2
 python-multipart
+pytesseract
+pdf2image

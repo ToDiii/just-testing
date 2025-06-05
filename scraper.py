@@ -4,6 +4,10 @@ from urllib.parse import urljoin
 import re
 from datetime import datetime
 import io
+import os
+import tempfile
+from pdf2image import convert_from_path
+import pytesseract
 from PyPDF2 import PdfReader # Ensure this matches the library you have / expect
 import json
 import csv
@@ -234,13 +238,25 @@ def extract_data_from_html_page(page_url, html_content, source_municipality_name
         })
     return extracted_items
 
+def extract_text_with_ocr(pdf_path: str) -> str:
+    try:
+        images = convert_from_path(pdf_path)
+        return "\n".join(pytesseract.image_to_string(img) for img in images)
+    except Exception as e:
+        print(f"OCR failed: {e}")
+        return ""
+
 def download_pdf_to_text(pdf_url):
     print(f"Downloading PDF: {pdf_url}")
+    temp_pdf_path = None
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
-        response = requests.get(pdf_url, headers=headers, timeout=45) 
+        response = requests.get(pdf_url, headers=headers, timeout=45)
         response.raise_for_status()
         pdf_file_like_object = io.BytesIO(response.content)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+            tmp_file.write(response.content)
+            temp_pdf_path = tmp_file.name
         text = ""
         try:
             reader = PdfReader(pdf_file_like_object)
@@ -260,15 +276,19 @@ def download_pdf_to_text(pdf_url):
             print(f"PyPDF2 error while reading {pdf_url}: {e}. PDF might be corrupted or unreadable.")
             return None 
         if not text.strip():
-             print(f"Warning: No text extracted from PDF (possibly image-based or empty): {pdf_url}")
-             return None 
-        return text
+            print(f"Warning: No text extracted from PDF, using OCR fallback: {pdf_url}")
+            if temp_pdf_path:
+                text = extract_text_with_ocr(temp_pdf_path)
+        return text if text.strip() else None
     except requests.exceptions.RequestException as e:
         print(f"Error downloading PDF {pdf_url}: {e}")
         return None
-    except Exception as e: 
+    except Exception as e:
         print(f"Unexpected error processing PDF {pdf_url}: {e}")
         return None
+    finally:
+        if temp_pdf_path and os.path.exists(temp_pdf_path):
+            os.remove(temp_pdf_path)
 
 def extract_data_from_pdf_text(pdf_url, pdf_text, source_municipality_name):
     extracted_items = []
