@@ -22,9 +22,11 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push Docker image
+      - name: Build and push multi-arch Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: todiii/german-bau-scraper:latest
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            todiii/german-bau-scraper:latest
