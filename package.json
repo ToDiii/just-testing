@@ -1,0 +1,12 @@
+{
+  "name": "just-testing",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "echo \"No frontend tests specified\""
+  },
+  "dependencies": {
+    "maplibre-gl": "^3.5.0"
+  }
+}
