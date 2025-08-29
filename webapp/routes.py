@@ -6,9 +6,11 @@ from datetime import datetime
 from . import models, schemas
 from .database import SessionLocal
 from scraper import Scraper
+from .geocoding import geocode_location
+from .utils import haversine_distance
+from .security import get_api_key
 
-router = APIRouter()
-scraper_instance = Scraper()
+router = APIRouter(dependencies=[Depends(get_api_key)])
 
 
 def get_db():
@@ -24,7 +26,19 @@ def create_target(target: schemas.TargetSiteCreate, db: Session = Depends(get_db
     db_target = db.query(models.TargetSite).filter(models.TargetSite.url == target.url).first()
     if db_target:
         raise HTTPException(status_code=400, detail="Target already exists")
-    db_target = models.TargetSite(url=target.url, name=target.name)
+
+    lat, lon = None, None
+    if target.name:
+        coords = geocode_location(target.name)
+        if coords:
+            lat, lon = coords
+
+    db_target = models.TargetSite(
+        url=target.url,
+        name=target.name,
+        latitude=lat,
+        longitude=lon
+    )
     db.add(db_target)
     db.commit()
     db.refresh(db_target)
@@ -38,6 +52,13 @@ def read_targets(skip: int = 0, limit: int = 100, db: Session = Depends(get_db))
 
 def scrape_single_target(target: models.TargetSite, db: Session) -> int:
     """Scrape a single target site using the Scraper class and return the number of new results."""
+    keywords = db.query(models.Keyword).all()
+    if not keywords:
+        raise HTTPException(status_code=400, detail="No keywords configured. Please add keywords before scraping.")
+
+    keyword_list = [k.word for k in keywords]
+    scraper_instance = Scraper(keywords=keyword_list)
+
     site_name = target.name or target.url
     results = scraper_instance.scrape_site(site_name, target.url)
 
@@ -114,3 +135,54 @@ def delete_target(target_id: int, db: Session = Depends(get_db)):
     db.delete(target)
     db.commit()
     return {"message": f"Target {target_id} deleted"}
+
+
+@router.post("/keywords/", response_model=schemas.Keyword)
+def create_keyword(keyword: schemas.KeywordCreate, db: Session = Depends(get_db)):
+    db_keyword = db.query(models.Keyword).filter(models.Keyword.word == keyword.word).first()
+    if db_keyword:
+        raise HTTPException(status_code=400, detail="Keyword already exists")
+    db_keyword = models.Keyword(word=keyword.word)
+    db.add(db_keyword)
+    db.commit()
+    db.refresh(db_keyword)
+    return db_keyword
+
+
+@router.get("/keywords/", response_model=List[schemas.Keyword])
+def read_keywords(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return db.query(models.Keyword).offset(skip).limit(limit).all()
+
+
+@router.delete("/keywords/{keyword_id}")
+def delete_keyword(keyword_id: int, db: Session = Depends(get_db)):
+    keyword = db.query(models.Keyword).filter(models.Keyword.id == keyword_id).first()
+    if not keyword:
+        raise HTTPException(status_code=404, detail="Keyword not found")
+    db.delete(keyword)
+    db.commit()
+    return {"message": f"Keyword {keyword_id} deleted"}
+
+
+@router.get("/targets/search-by-radius/", response_model=List[schemas.TargetSite])
+def search_targets_by_radius(
+    lat: float, lon: float, radius: int, db: Session = Depends(get_db)
+):
+    """
+    Search for targets within a given radius from a central point.
+    - lat: Latitude of the center point.
+    - lon: Longitude of the center point.
+    - radius: Search radius in kilometers.
+    """
+    all_targets = db.query(models.TargetSite).filter(
+        models.TargetSite.latitude.isnot(None),
+        models.TargetSite.longitude.isnot(None)
+    ).all()
+
+    nearby_targets = []
+    for target in all_targets:
+        distance = haversine_distance(lat, lon, target.latitude, target.longitude)
+        if distance <= radius:
+            nearby_targets.append(target)
+
+    return nearby_targets

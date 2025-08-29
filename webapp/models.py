@@ -5,12 +5,16 @@ from sqlalchemy.orm import relationship
 from .database import Base
 
 
+from sqlalchemy import Float
+
 class TargetSite(Base):
     __tablename__ = "target_sites"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=True)
     url = Column(String, unique=True, nullable=False)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
     added_at = Column(DateTime, default=datetime.utcnow)
 
     results = relationship("ScrapeResult", back_populates="target")
@@ -30,3 +34,11 @@ class ScrapeResult(Base):
     scraped_at = Column(DateTime, default=datetime.utcnow)
 
     target = relationship("TargetSite", back_populates="results")
+
+
+class Keyword(Base):
+    __tablename__ = "keywords"
+
+    id = Column(Integer, primary_key=True, index=True)
+    word = Column(String, unique=True, index=True, nullable=False)
+    added_at = Column(DateTime, default=datetime.utcnow)

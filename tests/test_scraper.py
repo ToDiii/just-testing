@@ -16,7 +16,7 @@ def test_find_relevant_links_separates_html_and_pdf_links():
       <a href='/kontakt'>Kontakt</a>
     </body></html>
     """
-    scraper_instance = Scraper()
+    scraper_instance = Scraper(keywords=["baugebiet", "bebauungsplan", "grundstück"])
     html_links, pdf_links = scraper_instance.find_relevant_links(html, 'https://example.com')
 
     expected_html = {

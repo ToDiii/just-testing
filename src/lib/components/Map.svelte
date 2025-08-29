@@ -9,7 +9,31 @@
   const dispatch = createEventDispatcher<{ load: { map: Map } }>();
 
   let container: HTMLDivElement;
-  let map: Map;
+  export let map: Map = undefined;
+
+  let markers = [];
+
+  export function addMarkers(locations: { lon: number; lat: number; name: string }[]) {
+    // Clear existing markers
+    markers.forEach(marker => marker.remove());
+    markers = [];
+
+    if (!map) return;
+
+    locations.forEach(loc => {
+      const marker = new maplibregl.Marker()
+        .setLngLat([loc.lon, loc.lat])
+        .setPopup(new maplibregl.Popup().setText(loc.name))
+        .addTo(map);
+      markers.push(marker);
+    });
+
+    if (locations.length > 0) {
+      const bounds = new maplibregl.LngLatBounds();
+      locations.forEach(loc => bounds.extend([loc.lon, loc.lat]));
+      map.fitBounds(bounds, { padding: 50 });
+    }
+  }
 
   onMount(() => {
     map = new maplibregl.Map({
@@ -24,7 +48,10 @@
 
     map.on('load', () => dispatch('load', { map }));
 
-    return () => map.remove();
+    return () => {
+      markers.forEach(marker => marker.remove());
+      map.remove();
+    };
   });
 </script>
 
