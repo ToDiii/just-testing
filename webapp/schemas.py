@@ -14,6 +14,8 @@ class TargetSiteCreate(TargetSiteBase):
 
 class TargetSite(TargetSiteBase):
     id: int
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     added_at: datetime
 
     class Config:
@@ -43,3 +45,19 @@ class ScrapeResult(ScrapeResultBase):
 
 class TargetWithResults(TargetSite):
     results: List[ScrapeResult] = []
+
+
+class KeywordBase(BaseModel):
+    word: str
+
+
+class KeywordCreate(KeywordBase):
+    pass
+
+
+class Keyword(KeywordBase):
+    id: int
+    added_at: datetime
+
+    class Config:
+        orm_mode = True

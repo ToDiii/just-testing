@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import KeywordManager from './KeywordManager.svelte';
 
   type Target = {
     id: number;
@@ -56,48 +57,55 @@
 </script>
 
 <div class="bg-white p-6 rounded-lg shadow-md">
-  <h2 class="text-2xl font-bold mb-4">Manage Targets</h2>
+  <h2 class="text-2xl font-bold mb-4">Manage Targets & Keywords</h2>
 
-  <div class="mb-6">
-    <h3 class="text-xl font-semibold mb-2">Add New Target</h3>
-    <form on:submit|preventDefault={addTarget}>
-      <div class="flex flex-col md:flex-row gap-4 mb-2">
-        <input
-          type="text"
-          placeholder="Name (e.g., City Name)"
-          bind:value={newTargetName}
-          class="input input-bordered w-full"
-        />
-        <input
-          type="url"
-          placeholder="URL"
-          required
-          bind:value={newTargetUrl}
-          class="input input-bordered w-full"
-        />
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div>
+      <h3 class="text-xl font-semibold mb-2">Manage Targets</h3>
+      <form on:submit|preventDefault={addTarget} class="mb-6">
+        <div class="flex flex-col gap-2 mb-2">
+          <input
+            type="text"
+            placeholder="Name (e.g., City Name)"
+            bind:value={newTargetName}
+            class="input input-bordered w-full"
+          />
+          <input
+            type="url"
+            placeholder="URL"
+            required
+            bind:value={newTargetUrl}
+            class="input input-bordered w-full"
+          />
+        </div>
+        <button type="submit" class="btn btn-primary">Add Target</button>
+      </form>
+
+      {#if errorMessage}
+        <p class="text-red-500 my-2">{errorMessage}</p>
+      {/if}
+
+      <div>
+        <h4 class="font-semibold mb-2">Existing Targets</h4>
+        {#if isLoading}
+          <p>Loading targets...</p>
+        {:else if targets.length === 0}
+          <p>No targets configured yet.</p>
+        {:else}
+          <ul class="space-y-2">
+            {#each targets as target (target.id)}
+              <li class="p-4 bg-gray-50 rounded-md border border-gray-200">
+                <p class="font-bold text-gray-800">{target.name || 'Unnamed'}</p>
+                <p class="text-sm text-gray-600 break-all">{target.url}</p>
+              </li>
+            {/each}
+          </ul>
+        {/if}
       </div>
-      <button type="submit" class="btn btn-primary">Add Target</button>
-    </form>
-    {#if errorMessage}
-      <p class="text-red-500 mt-2">{errorMessage}</p>
-    {/if}
-  </div>
+    </div>
 
-  <div>
-    <h3 class="text-xl font-semibold mb-2">Existing Targets</h3>
-    {#if isLoading}
-      <p>Loading targets...</p>
-    {:else if targets.length === 0}
-      <p>No targets configured yet.</p>
-    {:else}
-      <ul class="space-y-2">
-        {#each targets as target (target.id)}
-          <li class="p-4 bg-gray-50 rounded-md border border-gray-200">
-            <p class="font-bold text-gray-800">{target.name || 'Unnamed'}</p>
-            <p class="text-sm text-gray-600">{target.url}</p>
-          </li>
-        {/each}
-      </ul>
-    {/if}
+    <div>
+      <KeywordManager />
+    </div>
   </div>
 </div>

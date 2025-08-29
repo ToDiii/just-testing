@@ -13,19 +13,11 @@ import json
 import csv
 import time
 
-# Global list of keywords remains, as it's a core part of the domain logic.
-KEYWORDS = ["baugebiet", "bebauungsplan", "flächennutzungsplan", "grundstück", "bauplatz", "bauland", "ausschreibung", "verkauf", "entwicklung", "neubaugebiet", "sanierung"]
-
-# Predefined target URLs for the FastAPI app
-PREDEFINED_TARGETS = [
-    "https://www.taufkirchen.de/",
-    "https://www.taufkirchen.de/stellenausschreibungen",
-    "https://www.taufkirchen.de/marktgemeinde/baugrundstuecke",
-]
-
 class Scraper:
-    def __init__(self, keywords=None):
-        self.keywords = keywords if keywords else KEYWORDS
+    def __init__(self, keywords):
+        if not keywords:
+            raise ValueError("Scraper must be initialized with a list of keywords.")
+        self.keywords = [k.lower() for k in keywords]
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'

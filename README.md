@@ -74,9 +74,10 @@ The easiest way to run the application is with Docker.
     Run the container and expose port `8000` to access the web interface. Mount a local directory to persist the database.
 
     ```bash
-    docker run --rm -p 8000:8000 -v "$(pwd)/output_data:/app/webapp" german-bau-scraper
+    docker run --rm -p 8000:8000 -v "$(pwd)/output_data:/app/webapp" -e API_KEY="your-secret-api-key" german-bau-scraper
     ```
     *   The `-v` flag mounts the `output_data` directory on your host to the `/app/webapp` directory in the container, where the `webapp.db` SQLite file is stored.
+    *   The `-e` flag sets the `API_KEY` environment variable. Make sure to use a strong, secret key.
 
     You can now access the application at `http://localhost:8000`.
 
