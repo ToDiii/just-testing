@@ -1,4 +1,4 @@
-# German Municipality Scraper
+# Municipality Scraper
 
 This project scrapes announcements from German municipalities and provides a modern web interface to view the results and manage scraping targets.
 
