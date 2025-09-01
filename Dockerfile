@@ -11,7 +11,7 @@ COPY . .
 RUN npm run build
 
 # Stage 2: Build the Python backend
-FROM python:3.9-slim
+FROM python:3.11-slim
 
 RUN apt-get update && apt-get install -y \
     tesseract-ocr \
