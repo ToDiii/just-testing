@@ -55,7 +55,13 @@ To run the application in a development environment, you need to run the backend
     npm install
     ```
 
-2.  **Run the Frontend Development Server**:
+2.  **Create Environment File**:
+    Create a `.env` file in the project root. This file is used to configure the frontend application. For development, you need to set the API key, which must match the key expected by the backend.
+    ```env
+    VITE_API_KEY=dev
+    ```
+
+3.  **Run the Frontend Development Server**:
     ```bash
     npm run dev
     ```
