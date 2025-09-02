@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { api } from '../api';
 
   type Keyword = {
     id: number;
@@ -15,11 +16,7 @@
     isLoading = true;
     errorMessage = '';
     try {
-      const response = await fetch('/api/keywords/');
-      if (!response.ok) {
-        throw new Error('Failed to fetch keywords.');
-      }
-      keywords = await response.json();
+      keywords = await api('/api/keywords/');
     } catch (error) {
       errorMessage = error.message;
     } finally {
@@ -33,15 +30,11 @@
       return;
     }
     try {
-      const response = await fetch('/api/keywords/', {
+      await api('/api/keywords/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ word: newKeyword }),
       });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to add keyword.');
-      }
       newKeyword = '';
       fetchKeywords(); // Refresh the list
     } catch (error) {
@@ -51,13 +44,9 @@
 
   async function deleteKeyword(id: number) {
     try {
-      const response = await fetch(`/api/keywords/${id}`, {
+      await api(`/api/keywords/${id}`, {
         method: 'DELETE',
       });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to delete keyword.');
-      }
       fetchKeywords(); // Refresh the list
     } catch (error) {
       errorMessage = error.message;

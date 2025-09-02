@@ -1,5 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
+  import { api } from '../api';
 
   const dispatch = createEventDispatcher();
 
@@ -32,13 +33,7 @@
 
       // Step 2: Call our backend to find targets in the radius
       const searchUrl = `/api/targets/search-by-radius/?lat=${lat}&lon=${lon}&radius=${radius}`;
-      const searchResponse = await fetch(searchUrl);
-
-      if (!searchResponse.ok) {
-        throw new Error('Failed to fetch targets from the server.');
-      }
-
-      const nearbyTargets = await searchResponse.json();
+      const nearbyTargets = await api(searchUrl);
       dispatch('searchcomplete', { targets: nearbyTargets, center: { lat, lon } });
 
     } catch (error) {
