@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { api } from '../api';
   import KeywordManager from './KeywordManager.svelte';
 
   type Target = {
@@ -18,11 +19,7 @@
     isLoading = true;
     errorMessage = '';
     try {
-      const response = await fetch('/api/targets/');
-      if (!response.ok) {
-        throw new Error('Failed to fetch targets.');
-      }
-      targets = await response.json();
+      targets = await api('/api/targets/');
     } catch (error) {
       errorMessage = error.message;
     } finally {
@@ -36,15 +33,11 @@
       return;
     }
     try {
-      const response = await fetch('/api/targets/', {
+      await api('/api/targets/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newTargetName, url: newTargetUrl }),
       });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to add target.');
-      }
       newTargetName = '';
       newTargetUrl = '';
       fetchTargets(); // Refresh the list

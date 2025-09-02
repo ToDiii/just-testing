@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { api } from '../api';
   import RadiusSearch from './RadiusSearch.svelte';
   import Map from './Map.svelte';
 
@@ -35,11 +36,7 @@
     if (filterSearch) params.append('search', filterSearch);
 
     try {
-      const response = await fetch(`/api/results/?${params.toString()}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch results.');
-      }
-      results = await response.json();
+      results = await api(`/api/results/?${params.toString()}`);
     } catch (error) {
       errorMessage = error.message;
     } finally {
@@ -51,11 +48,7 @@
     isScraping = true;
     errorMessage = '';
     try {
-      const response = await fetch('/api/scrape', { method: 'POST' });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Scraping failed.');
-      }
+      await api('/api/scrape', { method: 'POST' });
       await fetchResults(); // Refresh results after scrape
     } catch (error) {
       errorMessage = error.message;
