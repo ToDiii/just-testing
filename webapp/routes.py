@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
@@ -75,32 +75,25 @@ def scrape_single_target(target: models.TargetSite, db: Session) -> int:
 
 
 @router.post("/scrape")
-def scrape_targets(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
-    """Triggers a background scraping job for all configured targets."""
+def scrape_targets(db: Session = Depends(get_db)):
     targets = db.query(models.TargetSite).all()
     if not targets:
         raise HTTPException(status_code=400, detail="No targets configured")
-
+    summary = []
     for target in targets:
-        # Re-fetch session for each task to ensure thread safety
-        task_db = SessionLocal()
-        background_tasks.add_task(scrape_single_target, target, task_db)
-
-    return {"status": "Scraping jobs started in the background for all targets."}
+        count = scrape_single_target(target, db)
+        summary.append({"target_id": target.id, "name": target.name, "new_results": count})
+    return {"status": "scrape_complete", "summary": summary}
 
 
 @router.post("/scrape/{target_id}")
-def scrape_target_endpoint(target_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
-    """Triggers a background scraping job for a single target."""
+def scrape_target_endpoint(target_id: int, db: Session = Depends(get_db)):
     target = db.get(models.TargetSite, target_id)
     if not target:
         raise HTTPException(status_code=404, detail="Target not found")
-
-    # Re-fetch session for the task to ensure thread safety
-    task_db = SessionLocal()
-    background_tasks.add_task(scrape_single_target, target, task_db)
-
-    return {"status": f"Scraping job for target {target_id} started in the background."}
+    new_count = scrape_single_target(target, db)
+    timestamp = datetime.utcnow()
+    return {"target_id": target_id, "new_results": new_count, "timestamp": timestamp}
 
 
 @router.get("/results/", response_model=List[schemas.ScrapeResult])

@@ -11,6 +11,7 @@ class TargetSite(Base):
     __tablename__ = "target_sites"
 
     id = Column(Integer, primary_key=True, index=True)
+    gemeindeschluessel = Column(String, unique=True, index=True, nullable=True)
     name = Column(String, nullable=True)
     url = Column(String, unique=True, nullable=False)
     latitude = Column(Float, nullable=True)

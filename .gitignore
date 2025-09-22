@@ -3,3 +3,6 @@ node_modules/
 build/
 __pycache__/
 output_data/
+venv/
+*.db
+webapp/webapp.db
