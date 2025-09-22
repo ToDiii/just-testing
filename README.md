@@ -4,25 +4,24 @@ This project scrapes announcements from German municipalities and provides a mod
 
 ## Architecture
 
-The project consists of three main parts:
+The project consists of two main parts:
 
-1.  **Backend**: A [FastAPI](https://fastapi.tiangolo.com/) application in `webapp/` that provides a REST API for managing scraping targets, keywords, and results. It uses SQLAlchemy to interact with a SQLite database and triggers scraping jobs as background tasks.
-2.  **Frontend**: A modern, reactive web application in `src/` built with [Svelte](https://svelte.dev/) and styled with [Tailwind CSS](https://tailwindcss.com/). The frontend communicates with the backend's API to display data and trigger actions.
-3.  **Scraper Library**: A refactored scraping logic located in the `scraper_lib/` directory. This library handles the heavy lifting of fetching, parsing, and extracting data. It is invoked by the FastAPI backend.
+1.  **Backend**: A [FastAPI](https://fastapi.tiangolo.com/) application that provides a REST API for managing scraping targets and results. It uses SQLAlchemy to interact with a SQLite database. The backend is located in the `webapp/` directory.
+2.  **Frontend**: A modern, reactive web application built with [Svelte](https://svelte.dev/) and styled with [Tailwind CSS](https://tailwindcss.com/). The frontend communicates with the backend's API to display data and trigger actions. The frontend code is located in the `src/` directory.
 
 The application is designed to be run with Docker, which simplifies setup and ensures a consistent environment.
 
 ## Features
 
--   **Web Scraper Engine**: A powerful scraping library that can:
+-   **Web Scraper**: A powerful scraper (`scraper.py`) that can:
     -   Fetch and parse HTML from a list of municipal websites.
     -   Identify relevant links based on keywords.
     -   Extract information from detail pages and PDF files.
     -   Use OCR to extract text from scanned PDFs.
 -   **Modern UI**: A Svelte-based user interface that allows you to:
     -   View and filter scraped results.
-    -   Add and manage target websites and keywords for scraping.
-    -   Trigger new scraping jobs for all or individual targets.
+    -   Add and manage target websites for scraping.
+    -   Trigger new scraping jobs.
 -   **REST API**: A FastAPI backend that exposes endpoints for managing the scraper.
 -   **Dockerized**: The entire application can be built and run as a Docker container.
 
@@ -48,6 +47,17 @@ To run the application in a development environment, you need to run the backend
     uvicorn webapp.main:app --reload
     ```
     The backend will be available at `http://127.0.0.1:8000`.
+
+### Populating the Database (One-Time Setup)
+
+To make features like the radius search effective, you first need to populate the database with a comprehensive list of German municipalities. A script is provided to do this automatically from a public data source.
+
+Run the following command from the project root:
+```bash
+python3 import_gemeinden.py
+```
+
+This will download over 10,000 records and insert them into the database. This process is idempotent, meaning you can run it again later without creating duplicate entries.
 
 ### Frontend Setup
 
