@@ -59,6 +59,18 @@ python3 import_gemeinden.py
 
 This will download over 10,000 records and insert them into the database. This process is idempotent, meaning you can run it again later without creating duplicate entries.
 
+### Finding Official URLs (Optional)
+
+After importing the municipalities, their website URLs are set to a placeholder. To find the real URLs, you can run the `find_urls.py` script:
+
+```bash
+python3 find_urls.py
+```
+
+This script will iterate through all entries with a placeholder URL, perform a Google search, and use a heuristic to find the most likely official website. It will then update the database with the new URL.
+
+**Note:** This process is very slow as it includes delays to avoid being blocked by the search engine. It may take several hours to complete for all entries.
+
 ### Frontend Setup
 
 1.  **Install Node.js Dependencies**:
