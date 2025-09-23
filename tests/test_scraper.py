@@ -3,7 +3,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from scraper import Scraper
+from scraper_lib.parser import find_relevant_links
 
 
 def test_find_relevant_links_separates_html_and_pdf_links():
@@ -16,8 +16,8 @@ def test_find_relevant_links_separates_html_and_pdf_links():
       <a href='/kontakt'>Kontakt</a>
     </body></html>
     """
-    scraper_instance = Scraper(keywords=["baugebiet", "bebauungsplan", "grundstück"])
-    html_links, pdf_links = scraper_instance.find_relevant_links(html, 'https://example.com')
+    keywords = ["baugebiet", "bebauungsplan", "grundstück"]
+    html_links, pdf_links = find_relevant_links(html, 'https://example.com', keywords)
 
     expected_html = {
         'https://example.com/news/baugebiet-update',
