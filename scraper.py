@@ -1,8 +1,5 @@
 import requests
 import time
-import os
-import json
-import csv
 
 from scraper_lib.fetcher import fetch_html, download_pdf_to_text
 from scraper_lib.parser import find_relevant_links
@@ -62,7 +59,3 @@ class Scraper:
                 processed_urls.add(pdf_url)
 
         return all_data
-
-# The standalone execution logic is removed as it's handled by the webapp.
-# A small main block can be kept for direct testing if needed, but for now,
-# we rely on the webapp's API to trigger scrapes.
