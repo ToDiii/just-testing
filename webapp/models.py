@@ -13,6 +13,7 @@ class TargetSite(Base):
     id = Column(Integer, primary_key=True, index=True)
     gemeindeschluessel = Column(String, unique=True, index=True, nullable=True)
     name = Column(String, nullable=True)
+    postleitzahl = Column(String, index=True, nullable=True)
     url = Column(String, unique=True, nullable=False)
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)

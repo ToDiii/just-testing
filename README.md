@@ -4,32 +4,60 @@ This project scrapes announcements from German municipalities and provides a mod
 
 ## Architecture
 
-The project consists of two main parts:
+The project consists of three main parts:
 
-1.  **Backend**: A [FastAPI](https://fastapi.tiangolo.com/) application that provides a REST API for managing scraping targets and results. It uses SQLAlchemy to interact with a SQLite database. The backend is located in the `webapp/` directory.
-2.  **Frontend**: A modern, reactive web application built with [Svelte](https://svelte.dev/) and styled with [Tailwind CSS](https://tailwindcss.com/). The frontend communicates with the backend's API to display data and trigger actions. The frontend code is located in the `src/` directory.
+1.  **Backend**: A [FastAPI](https://fastapi.tiangolo.com/) application in `webapp/` that provides a REST API for managing scraping targets, keywords, and results. It uses SQLAlchemy to interact with a SQLite database and can trigger scraping jobs as background tasks.
+2.  **Frontend**: A modern, reactive web application in `src/` built with [Svelte](https://svelte.dev/) and styled with [Tailwind CSS](https://tailwindcss.com/). The frontend communicates with the backend's API to display data and trigger actions.
+3.  **Scraper Library**: A refactored scraping logic located in the `scraper_lib/` directory. This library handles the heavy lifting of fetching, parsing, and extracting data. It is invoked by the FastAPI backend.
 
 The application is designed to be run with Docker, which simplifies setup and ensures a consistent environment.
 
-## Features
-
--   **Web Scraper**: A powerful scraper (`scraper.py`) that can:
-    -   Fetch and parse HTML from a list of municipal websites.
-    -   Identify relevant links based on keywords.
-    -   Extract information from detail pages and PDF files.
-    -   Use OCR to extract text from scanned PDFs.
--   **Modern UI**: A Svelte-based user interface that allows you to:
-    -   View and filter scraped results.
-    -   Add and manage target websites for scraping.
-    -   Trigger new scraping jobs.
--   **REST API**: A FastAPI backend that exposes endpoints for managing the scraper.
--   **Dockerized**: The entire application can be built and run as a Docker container.
-
 ## Development Setup
 
-To run the application in a development environment, you need to run the backend and frontend separately.
+To run the application, you need to set up the database, install dependencies, and run the backend and frontend servers.
 
-### Backend Setup
+### 1. Database Setup
+
+You have two options for populating the database with municipality data.
+
+**Option A: Full Import (For Production / Full-Scale Testing)**
+
+To populate the database with a comprehensive list of over 10,000 German municipalities and their associated postal codes, run the main import script. This script combines data from two different public datasets to create a complete record for each municipality.
+
+```bash
+python3 import_data.py
+```
+This process is idempotent (it won't create duplicates) but may take some time. For a quick test of the import logic, you can use the `--limit` flag:
+
+```bash
+# Import the first 100 records to test the process
+python3 import_data.py --limit 100
+```
+
+**Option B: Seeding a Small Test Set (For Quick, Repeatable Tests)**
+
+If you only need a small, guaranteed set of known municipalities for testing, run the seed script.
+
+```bash
+python3 seed_db.py
+```
+This script ensures 6 specific Bavarian municipalities are present in the database with their real URLs and postal codes, creating or updating them as needed. This is the fastest way to get a usable test environment.
+
+### 2. Finding Official URLs (Optional, Long-Running)
+
+After populating the database via the full import, most municipalities will have placeholder URLs. To find their real websites, you can run the URL finder script:
+
+```bash
+python3 find_urls.py
+```
+This script uses Google Search to find the official URL for each entry. **Warning:** This process is extremely slow (many hours). To test the script's functionality, use the `--limit` flag:
+
+```bash
+# Process the first 5 municipalities with placeholder URLs
+python3 find_urls.py --limit 5
+```
+
+### 3. Backend & Frontend Setup
 
 1.  **Create a Virtual Environment**:
     ```bash
@@ -48,74 +76,28 @@ To run the application in a development environment, you need to run the backend
     ```
     The backend will be available at `http://127.0.0.1:8000`.
 
-### Populating the Database (One-Time Setup)
-
-To make features like the radius search effective, you first need to populate the database with a comprehensive list of German municipalities. A script is provided to do this automatically from a public data source.
-
-Run the following command from the project root:
-```bash
-python3 import_gemeinden.py
-```
-
-This will download over 10,000 records and insert them into the database. This process is idempotent, meaning you can run it again later without creating duplicate entries.
-
-### Finding Official URLs (Optional)
-
-After importing the municipalities, their website URLs are set to a placeholder. To find the real URLs, you can run the `find_urls.py` script:
-
-```bash
-python3 find_urls.py
-```
-
-This script will iterate through all entries with a placeholder URL, perform a Google search, and use a heuristic to find the most likely official website. It will then update the database with the new URL.
-
-**Note:** This process is very slow as it includes delays to avoid being blocked by the search engine. It may take several hours to complete for all entries.
-
-### Frontend Setup
-
-1.  **Install Node.js Dependencies**:
+4.  **Install Node.js Dependencies** (in a separate terminal):
     ```bash
     npm install
     ```
 
-2.  **Create Environment File**:
-    Create a `.env` file in the project root. This file is used to configure the frontend application. For development, you need to set the API key, which must match the key expected by the backend.
+5.  **Create Environment File**:
+    Create a `.env` file in the project root and set the API key:
     ```env
     VITE_API_KEY=dev
     ```
 
-3.  **Run the Frontend Development Server**:
+6.  **Run the Frontend Development Server**:
     ```bash
     npm run dev
     ```
-    The frontend will be available at `http://localhost:5173`. API requests will be automatically proxied to the backend at `http://127.0.0.1:8000`.
-
-## Running with Docker (Production)
-
-The easiest way to run the application is with Docker.
-
-1.  **Build the Docker Image**:
-    ```bash
-    docker build -t german-bau-scraper .
-    ```
-
-2.  **Run the Docker Container**:
-    Run the container and expose port `8000` to access the web interface. Mount a local directory to persist the database.
-
-    ```bash
-    docker run --rm -p 8000:8000 -v "$(pwd)/output_data:/app/webapp" -e API_KEY="your-secret-api-key" german-bau-scraper
-    ```
-    *   The `-v` flag mounts the `output_data` directory on your host to the `/app/webapp` directory in the container, where the `webapp.db` SQLite file is stored.
-    *   The `-e` flag sets the `API_KEY` environment variable. Make sure to use a strong, secret key.
-
-    You can now access the application at `http://localhost:8000`.
+    The frontend will be available at `http://localhost:5173`.
 
 ## Running Tests
 
-To run the unit tests for the scraper, make sure `pytest` is installed and then execute:
+To run the unit tests for the scraper library, make sure `pytest` is installed and then execute:
 
 ```bash
 python3 -m pytest
 ```
-
-This will run the tests in `tests/test_scraper.py` and ensure that the core scraping logic is working correctly.
+This will run the tests in `tests/test_scraper.py` and ensure the core scraping logic is working correctly.
