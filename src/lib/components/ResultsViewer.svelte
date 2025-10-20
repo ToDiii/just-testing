@@ -1,8 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { api } from '../api';
-  import RadiusSearch from './RadiusSearch.svelte';
-  import Map from './Map.svelte';
 
   type ScrapeResult = {
     id: number;
@@ -19,15 +17,6 @@
   let isScraping = false;
   let errorMessage = '';
   let filterSearch = '';
-  let mapComponent: Map;
-
-  function handleSearchComplete(event) {
-    const { targets, center } = event.detail;
-    if (mapComponent) {
-      const locations = targets.map(t => ({ lat: t.latitude, lon: t.longitude, name: t.name }));
-      mapComponent.addMarkers(locations);
-    }
-  }
 
   async function fetchResults() {
     isLoading = true;
@@ -71,12 +60,6 @@
         Run Scrape
       {/if}
     </button>
-  </div>
-
-  <RadiusSearch on:searchcomplete={handleSearchComplete} />
-
-  <div class="w-full h-96 mb-4">
-    <Map bind:this={mapComponent} />
   </div>
 
   <div class="mb-4">
