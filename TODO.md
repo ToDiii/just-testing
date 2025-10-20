@@ -14,7 +14,7 @@ Dieses Dokument listet die geplanten Schritte zur Optimierung und Modernisierung
 ## Zukünftige Feature-Verbesserungen
 
 - [ ] **Fortschrittsanzeige für Scraper**: Eine visuelle Anzeige (z.B. Ladesymbol) im Frontend implementieren, die aktiv ist, während der Scraping-Vorgang läuft.
-- [ ] **Interaktive Karte**: Die Kartenansicht mit OpenStreetMap (oder einer ähnlichen Bibliothek wie Leaflet.js) implementieren, um Ergebnisse geografisch darzustellen und filterbar zu machen.
+- [x] **Interaktive Karte**: Die Kartenansicht mit OpenStreetMap (oder einer ähnlichen Bibliothek wie Leaflet.js) implementieren, um Ergebnisse geografisch darzustellen und filterbar zu machen.
 - [ ] **Keyword-Ergebnisse verbessern**: Die Darstellung der Ergebnisse verbessern, um klarer zu machen, welches Keyword in welchem Kontext gefunden wurde.
 
 ---
