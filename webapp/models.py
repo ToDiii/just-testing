@@ -45,3 +45,13 @@ class Keyword(Base):
     id = Column(Integer, primary_key=True, index=True)
     word = Column(String, unique=True, index=True, nullable=False)
     added_at = Column(DateTime, default=datetime.utcnow)
+
+
+class GlobalState(Base):
+    __tablename__ = "global_state"
+
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String, unique=True, index=True, nullable=False)
+    last_scrape_start = Column(DateTime, nullable=True)
+    last_scrape_end = Column(DateTime, nullable=True)
+    scrape_status = Column(String, default="idle")
