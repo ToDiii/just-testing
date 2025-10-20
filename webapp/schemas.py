@@ -23,6 +23,20 @@ class TargetSite(TargetSiteBase):
         orm_mode = True
 
 
+class GlobalStateBase(BaseModel):
+    last_scrape_start: Optional[datetime] = None
+    last_scrape_end: Optional[datetime] = None
+    scrape_status: str
+
+
+class GlobalState(GlobalStateBase):
+    id: int
+    key: str
+
+    class Config:
+        orm_mode = True
+
+
 class ScrapeResultBase(BaseModel):
     title: str
     description: str

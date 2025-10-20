@@ -18,6 +18,44 @@
   let errorMessage = '';
   let filterText = '';
 
+  type ScrapeStatus = {
+    last_scrape_start: string | null;
+    last_scrape_end: string | null;
+    scrape_status: 'idle' | 'running';
+  };
+
+  let scrapeStatus: ScrapeStatus = {
+    last_scrape_start: null,
+    last_scrape_end: null,
+    scrape_status: 'idle',
+  };
+
+  let isScraping = false;
+
+  async function fetchScrapeStatus() {
+    try {
+      scrapeStatus = await api('/api/scrape/status');
+      isScraping = scrapeStatus.scrape_status === 'running';
+    } catch (error) {
+      console.error('Failed to fetch scrape status:', error);
+    }
+  }
+
+  async function scrapeAllTargets() {
+    isScraping = true;
+    errorMessage = '';
+    try {
+      await api('/api/scrape', { method: 'POST' });
+      // After scraping, refresh both the targets (for timestamps) and the status
+      await fetchTargets();
+      await fetchScrapeStatus();
+    } catch (error) {
+      errorMessage = error.message;
+    } finally {
+      isScraping = false;
+    }
+  }
+
   $: filteredTargets = targets.filter(target =>
     target.name?.toLowerCase().includes(filterText.toLowerCase()) ||
     target.url.toLowerCase().includes(filterText.toLowerCase())
@@ -59,7 +97,10 @@
     }
   }
 
-  onMount(fetchTargets);
+  onMount(() => {
+    fetchTargets();
+    fetchScrapeStatus();
+  });
 </script>
 
 <div class="bg-white p-6 rounded-lg shadow-md">
@@ -92,7 +133,27 @@
       {/if}
 
       <div>
-        <h4 class="font-semibold mb-2">Existing Targets</h4>
+        <div class="flex justify-between items-center mb-4">
+          <h4 class="font-semibold">Existing Targets</h4>
+          <button
+            class="btn btn-secondary"
+            on:click={scrapeAllTargets}
+            disabled={isScraping}
+          >
+            {#if isScraping}
+              <span class="loading loading-spinner"></span>
+              Scraping...
+            {:else}
+              Scrape All Targets
+            {/if}
+          </button>
+        </div>
+
+        <div class="text-sm text-gray-500 mb-4 p-2 bg-gray-50 rounded-md">
+          <p>Last scrape started: {formatTimestamp(scrapeStatus.last_scrape_start)}</p>
+          <p>Last scrape finished: {formatTimestamp(scrapeStatus.last_scrape_end)}</p>
+        </div>
+
         <input
           type="text"
           placeholder="Filter targets..."
