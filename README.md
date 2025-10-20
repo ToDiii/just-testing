@@ -12,6 +12,25 @@ The project consists of three main parts:
 
 The application is designed to be run with Docker, which simplifies setup and ensures a consistent environment.
 
+## Proxmox LXC Installation (Recommended for Production)
+
+For a dedicated, lightweight production environment, you can install the application in a Proxmox LXC container using the provided installation script.
+
+1.  **Create an LXC Container**:
+    *   Use a modern Debian or Ubuntu template (e.g., Debian 12 or Ubuntu 24.04).
+    *   **Recommended Resources**: 2 CPU Cores, 4GB RAM, 32GB Storage.
+
+2.  **Run the Installer**:
+    *   Start the container and open its console.
+    *   Execute the following command to download and run the installation script:
+        ```bash
+        bash -c "$(wget -qLO - https://raw.githubusercontent.com/ToDiii/just-testing/main/install.sh)"
+        ```
+
+3.  **Access the Application**:
+    *   Once the script finishes, it will display the IP address of the container.
+    *   You can access the web interface at `http://<CONTAINER_IP>:8000`.
+
 ## Development Setup
 
 To run the application, you need to set up the database, install dependencies, and run the backend and frontend servers.
