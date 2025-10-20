@@ -1,0 +1,35 @@
+# This file is for development purposes and enables live-reloading.
+# For a production-like build, use the main 'docker-compose.yml' file.
+
+services:
+  app:
+    build:
+      context: .
+    ports:
+      - "8000:8000" # Backend API
+      - "5173:5173" # Frontend Dev Server
+    volumes:
+      # Mount backend source code for live-reloading
+      - ./webapp:/app/webapp
+      - ./scraper_lib:/app/scraper_lib
+      - ./scraper.py:/app/scraper.py
+
+      # Mount frontend source code
+      - ./src:/app/src
+      - ./public:/app/public
+      - ./index.html:/app/index.html
+      - ./svelte.config.js:/app/svelte.config.js
+      - ./vite.config.ts:/app/vite.config.ts
+
+      # Persist the database
+      - ./municipality_database.db:/app/municipality_database.db
+    environment:
+      - API_KEY=dev
+      - VITE_API_KEY=dev
+
+    # The command is split into two parts:
+    # 1. Start the backend server with live-reloading in the background.
+    # 2. Start the frontend dev server in the foreground.
+    command: >
+      sh -c "uvicorn webapp.main:app --host 0.0.0.0 --port 8000 --reload &
+             npm run dev -- --host"

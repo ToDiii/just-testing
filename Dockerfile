@@ -27,11 +27,16 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY scraper.py ./
+COPY scraper_lib ./scraper_lib
 COPY webapp ./webapp
+COPY seed_db.py ./
+COPY import_data.py ./
+COPY find_urls.py ./
 COPY --from=builder /app/dist ./dist
 
-# Set environment variable for the API key
+# Set environment variable for the API key and Python Path
 ENV API_KEY ""
+ENV PYTHONPATH "${PYTHONPATH}:/app"
 
 EXPOSE 8000
 
