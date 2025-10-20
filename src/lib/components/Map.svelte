@@ -1,58 +1,55 @@
 <script lang="ts">
-  import { onMount, createEventDispatcher } from 'svelte';
-  import maplibregl, { Map } from 'maplibre-gl';
-  import 'maplibre-gl/dist/maplibre-gl.css';
+  import 'leaflet/dist/leaflet.css';
+  import { LeafletMap, TileLayer, Marker, Popup } from 'svelte-leafletjs';
+  import { onMount } from 'svelte';
 
-  const DEFAULT_STYLE = 'https://demotiles.maplibre.org/style.json';
-  const styleUrl = import.meta.env.VITE_MAP_STYLE || DEFAULT_STYLE;
+  export let targets: any[] = [];
 
-  const dispatch = createEventDispatcher<{ load: { map: Map } }>();
+  let map: L.Map;
+  let L: any;
 
-  let container: HTMLDivElement;
-  export let map: Map = undefined;
+  // Filter targets that have valid coordinates
+  $: markers = targets.filter(t => t.latitude != null && t.longitude != null);
 
-  let markers = [];
+  // Default map center (Germany)
+  const mapOptions = {
+    center: [51.1657, 10.4515],
+    zoom: 6,
+  };
 
-  export function addMarkers(locations: { lon: number; lat: number; name: string }[]) {
-    // Clear existing markers
-    markers.forEach(marker => marker.remove());
-    markers = [];
+  onMount(async () => {
+    // Dynamically import Leaflet only on the client side
+    L = await import('leaflet');
 
-    if (!map) return;
-
-    locations.forEach(loc => {
-      const marker = new maplibregl.Marker()
-        .setLngLat([loc.lon, loc.lat])
-        .setPopup(new maplibregl.Popup().setText(loc.name))
-        .addTo(map);
-      markers.push(marker);
+    // Fix for default icon path issue with bundlers
+    // @ts-ignore
+    delete L.Icon.Default.prototype._getIconUrl;
+    L.Icon.Default.mergeOptions({
+      iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
     });
-
-    if (locations.length > 0) {
-      const bounds = new maplibregl.LngLatBounds();
-      locations.forEach(loc => bounds.extend([loc.lon, loc.lat]));
-      map.fitBounds(bounds, { padding: 50 });
-    }
-  }
-
-  onMount(() => {
-    map = new maplibregl.Map({
-      container,
-      style: styleUrl,
-      center: [11.576124, 48.137154],
-      zoom: 10
-    });
-
-    map.addControl(new maplibregl.NavigationControl(), 'top-right');
-    map.addControl(new maplibregl.ScaleControl(), 'bottom-left');
-
-    map.on('load', () => dispatch('load', { map }));
-
-    return () => {
-      markers.forEach(marker => marker.remove());
-      map.remove();
-    };
   });
 </script>
 
-<div bind:this={container} class="w-full h-full"></div>
+<div class="h-full w-full">
+  {#if L}
+    <LeafletMap options={mapOptions} bind:map>
+      <TileLayer
+        url={`https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png`}
+        options={{
+          attribution: `&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors`,
+        }}
+      />
+      {#each markers as target (target.id)}
+        <Marker latLng={[target.latitude, target.longitude]}>
+          <Popup>
+            <strong>{target.name || 'Unnamed Target'}</strong>
+            <br />
+            <a href={target.url} target="_blank" rel="noopener noreferrer">Visit website</a>
+          </Popup>
+        </Marker>
+      {/each}
+    </LeafletMap>
+  {/if}
+</div>

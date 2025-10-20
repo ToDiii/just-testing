@@ -1,13 +1,20 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import Map from '$lib/components/Map.svelte';
+  import { api } from '$lib/api';
 
-  function handleLoad(event: CustomEvent) {
-    const map = event.detail.map;
-    // Placeholder for dynamic layer handling
-    console.log('Map loaded', map);
-  }
+  let targets = [];
+
+  onMount(async () => {
+    try {
+      // Fetch all targets from the API to display on the map
+      targets = await api('/api/targets?limit=10000'); // Use a high limit to get all targets
+    } catch (error) {
+      console.error("Failed to fetch targets for map:", error);
+    }
+  });
 </script>
 
 <div class="w-screen h-screen">
-  <Map on:load={handleLoad} />
+  <Map {targets} />
 </div>
