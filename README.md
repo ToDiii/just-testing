@@ -12,9 +12,68 @@ The project consists of three main parts:
 
 The application is designed to be run with Docker, which simplifies setup and ensures a consistent environment.
 
+## Proxmox LXC Installation (Recommended for Production)
+
+For a dedicated, lightweight production environment, you can install the application in a Proxmox LXC container using the provided installation script.
+
+1.  **Create an LXC Container**:
+    *   Use a modern Debian or Ubuntu template (e.g., Debian 12 or Ubuntu 24.04).
+    *   **Recommended Resources**: 2 CPU Cores, 4GB RAM, 32GB Storage.
+
+2.  **Run the Installer**:
+    *   Start the container and open its console.
+    *   Execute the following command to download and run the installation script:
+        ```bash
+        bash -c "$(wget -qLO - https://raw.githubusercontent.com/ToDiii/just-testing/main/install.sh)"
+        ```
+
+3.  **Access the Application**:
+    *   Once the script finishes, it will display the IP address of the container.
+    *   You can access the web interface at `http://<CONTAINER_IP>:8000`.
+
 ## Development Setup
 
-To run the application, you need to set up the database, install dependencies, and run the backend and frontend servers.
+The recommended way to run the application for both development and production is using Docker Compose. A manual setup is also possible for advanced use cases.
+
+### Running with Docker Compose (Recommended)
+
+This project includes two Docker Compose files:
+-   `docker-compose.yml`: For a production-like environment. It builds the frontend and serves it via the FastAPI backend.
+-   `docker-compose.dev.yml`: For development. It enables live-reloading for both the backend and frontend.
+
+**1. Production-like Environment:**
+
+This method is ideal for testing the final build or for a simple deployment.
+
+```bash
+# Build and start the container in the background
+docker-compose up --build -d
+
+# Populate the database with a small test set
+docker-compose exec app python3 seed_db.py
+
+# Or populate with the full dataset (takes a long time)
+# docker-compose exec app python3 import_data.py
+```
+The application will be available at `http://localhost:8000`.
+
+**2. Development Environment (with Live-Reload):**
+
+This method is ideal for active development, as code changes will be reflected instantly without rebuilding the container.
+
+```bash
+# Build and start the containers
+docker-compose -f docker-compose.dev.yml up --build
+
+# In a separate terminal, populate the database
+docker-compose -f docker-compose.dev.yml exec app python3 seed_db.py
+```
+-   The **Backend API** will be available at `http://localhost:8000`.
+-   The **Frontend Dev Server** will be available at `http://localhost:5173`.
+
+### Manual Development Setup
+
+This method is useful if you want to run the frontend and backend as separate, local processes without Docker.
 
 ### 1. Database Setup
 

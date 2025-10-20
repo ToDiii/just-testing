@@ -1,0 +1,14 @@
+services:
+  app:
+    build:
+      context: .
+      # The .env file with VITE_API_KEY=dev must be present in the project root
+      # before building the image for the first time, as the frontend build needs it.
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persist the SQLite database file on the host machine
+      - ./municipality_database.db:/app/municipality_database.db
+    environment:
+      # API Key for the FastAPI backend at runtime.
+      - API_KEY=dev

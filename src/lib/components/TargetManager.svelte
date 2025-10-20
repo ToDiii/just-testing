@@ -2,11 +2,13 @@
   import { onMount } from 'svelte';
   import { api } from '../api';
   import KeywordManager from './KeywordManager.svelte';
+  import { formatDistanceToNow } from 'date-fns';
 
   type Target = {
     id: number;
     name: string;
     url: string;
+    last_scraped_at: string | null;
   };
 
   let targets: Target[] = [];
@@ -14,6 +16,55 @@
   let newTargetUrl = '';
   let isLoading = true;
   let errorMessage = '';
+  let filterText = '';
+
+  type ScrapeStatus = {
+    last_scrape_start: string | null;
+    last_scrape_end: string | null;
+    scrape_status: 'idle' | 'running';
+  };
+
+  let scrapeStatus: ScrapeStatus = {
+    last_scrape_start: null,
+    last_scrape_end: null,
+    scrape_status: 'idle',
+  };
+
+  let isScraping = false;
+
+  async function fetchScrapeStatus() {
+    try {
+      scrapeStatus = await api('/api/scrape/status');
+      isScraping = scrapeStatus.scrape_status === 'running';
+    } catch (error) {
+      console.error('Failed to fetch scrape status:', error);
+    }
+  }
+
+  async function scrapeAllTargets() {
+    isScraping = true;
+    errorMessage = '';
+    try {
+      await api('/api/scrape', { method: 'POST' });
+      // After scraping, refresh both the targets (for timestamps) and the status
+      await fetchTargets();
+      await fetchScrapeStatus();
+    } catch (error) {
+      errorMessage = error.message;
+    } finally {
+      isScraping = false;
+    }
+  }
+
+  $: filteredTargets = targets.filter(target =>
+    target.name?.toLowerCase().includes(filterText.toLowerCase()) ||
+    target.url.toLowerCase().includes(filterText.toLowerCase())
+  );
+
+  function formatTimestamp(timestamp: string | null) {
+    if (!timestamp) return 'Never';
+    return `${formatDistanceToNow(new Date(timestamp))} ago`;
+  }
 
   async function fetchTargets() {
     isLoading = true;
@@ -46,7 +97,10 @@
     }
   }
 
-  onMount(fetchTargets);
+  onMount(() => {
+    fetchTargets();
+    fetchScrapeStatus();
+  });
 </script>
 
 <div class="bg-white p-6 rounded-lg shadow-md">
@@ -79,20 +133,60 @@
       {/if}
 
       <div>
-        <h4 class="font-semibold mb-2">Existing Targets</h4>
+        <div class="flex justify-between items-center mb-4">
+          <h4 class="font-semibold">Existing Targets</h4>
+          <button
+            class="btn btn-secondary"
+            on:click={scrapeAllTargets}
+            disabled={isScraping}
+          >
+            {#if isScraping}
+              <span class="loading loading-spinner"></span>
+              Scraping...
+            {:else}
+              Scrape All Targets
+            {/if}
+          </button>
+        </div>
+
+        <div class="text-sm text-gray-500 mb-4 p-2 bg-gray-50 rounded-md">
+          <p>Last scrape started: {formatTimestamp(scrapeStatus.last_scrape_start)}</p>
+          <p>Last scrape finished: {formatTimestamp(scrapeStatus.last_scrape_end)}</p>
+        </div>
+
+        <input
+          type="text"
+          placeholder="Filter targets..."
+          bind:value={filterText}
+          class="input input-bordered w-full mb-4"
+        />
         {#if isLoading}
           <p>Loading targets...</p>
         {:else if targets.length === 0}
           <p>No targets configured yet.</p>
+        {:else if filteredTargets.length === 0}
+          <p>No targets match your filter.</p>
         {:else}
-          <ul class="space-y-2">
-            {#each targets as target (target.id)}
-              <li class="p-4 bg-gray-50 rounded-md border border-gray-200">
-                <p class="font-bold text-gray-800">{target.name || 'Unnamed'}</p>
-                <p class="text-sm text-gray-600 break-all">{target.url}</p>
-              </li>
-            {/each}
-          </ul>
+          <div class="overflow-x-auto">
+            <table class="table w-full">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>URL</th>
+                  <th>Last Scraped</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each filteredTargets as target (target.id)}
+                  <tr>
+                    <td class="font-bold">{target.name || 'Unnamed'}</td>
+                    <td class="text-sm break-all">{target.url}</td>
+                    <td class="text-sm">{formatTimestamp(target.last_scraped_at)}</td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
         {/if}
       </div>
     </div>

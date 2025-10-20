@@ -50,11 +50,32 @@ def read_targets(skip: int = 0, limit: int = 100, db: Session = Depends(get_db))
     return db.query(models.TargetSite).offset(skip).limit(limit).all()
 
 
+def get_or_create_global_state(db: Session) -> models.GlobalState:
+    """Helper to get the global state object, creating it if it doesn't exist."""
+    state = db.query(models.GlobalState).filter_by(key="global_scrape_status").first()
+    if not state:
+        state = models.GlobalState(key="global_scrape_status", scrape_status="idle")
+        db.add(state)
+        db.commit()
+        db.refresh(state)
+    return state
+
+
+@router.get("/scrape/status", response_model=schemas.GlobalState)
+def get_scrape_status(db: Session = Depends(get_db)):
+    """Get the current status of the global scraper."""
+    return get_or_create_global_state(db)
+
+
+from datetime import datetime
+
 def scrape_single_target(target: models.TargetSite, db: Session) -> int:
     """Scrape a single target site using the Scraper class and return the number of new results."""
     keywords = db.query(models.Keyword).all()
     if not keywords:
-        raise HTTPException(status_code=400, detail="No keywords configured. Please add keywords before scraping.")
+        # Don't raise an exception, just return 0 results if no keywords are set.
+        # This allows the timestamp to still be updated.
+        pass
 
     keyword_list = [k.word for k in keywords]
     scraper_instance = Scraper(keywords=keyword_list)
@@ -70,20 +91,46 @@ def scrape_single_target(target: models.TargetSite, db: Session) -> int:
             db.add(db_item)
             new_count += 1
 
+    # Update the last_scraped_at timestamp for the target
+    target.last_scraped_at = datetime.utcnow()
+    db.add(target)
     db.commit()
     return new_count
 
 
 @router.post("/scrape")
 def scrape_targets(db: Session = Depends(get_db)):
-    targets = db.query(models.TargetSite).all()
-    if not targets:
-        raise HTTPException(status_code=400, detail="No targets configured")
-    summary = []
-    for target in targets:
-        count = scrape_single_target(target, db)
-        summary.append({"target_id": target.id, "name": target.name, "new_results": count})
-    return {"status": "scrape_complete", "summary": summary}
+    state = get_or_create_global_state(db)
+    if state.scrape_status == "running":
+        raise HTTPException(status_code=409, detail="A scrape is already in progress.")
+
+    # Set status to running
+    state.scrape_status = "running"
+    state.last_scrape_start = datetime.utcnow()
+    db.commit()
+
+    try:
+        targets = db.query(models.TargetSite).all()
+        if not targets:
+            raise HTTPException(status_code=400, detail="No targets configured")
+
+        summary = []
+        for target in targets:
+            count = scrape_single_target(target, db)
+            summary.append({"target_id": target.id, "name": target.name, "new_results": count})
+
+        # Set status to idle and update end time
+        state.scrape_status = "idle"
+        state.last_scrape_end = datetime.utcnow()
+        db.commit()
+
+        return {"status": "scrape_complete", "summary": summary}
+    except Exception as e:
+        # In case of an error, reset the status
+        state.scrape_status = "idle"
+        db.commit()
+        # Re-raise the exception
+        raise e
 
 
 @router.post("/scrape/{target_id}")
