@@ -57,6 +57,11 @@ docker-compose exec app python3 seed_db.py
 ```
 The application will be available at `http://localhost:8000`.
 
+To stop the container, run:
+```bash
+docker-compose down
+```
+
 **2. Development Environment (with Live-Reload):**
 
 This method is ideal for active development, as code changes will be reflected instantly without rebuilding the container.
@@ -70,6 +75,11 @@ docker-compose -f docker-compose.dev.yml exec app python3 seed_db.py
 ```
 -   The **Backend API** will be available at `http://localhost:8000`.
 -   The **Frontend Dev Server** will be available at `http://localhost:5173`.
+
+To stop the development server, press `Ctrl+C` in the terminal where it is running, or run:
+```bash
+docker-compose -f docker-compose.dev.yml down
+```
 
 ### Manual Development Setup
 
