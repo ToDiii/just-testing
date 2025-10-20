@@ -50,11 +50,15 @@ def read_targets(skip: int = 0, limit: int = 100, db: Session = Depends(get_db))
     return db.query(models.TargetSite).offset(skip).limit(limit).all()
 
 
+from datetime import datetime
+
 def scrape_single_target(target: models.TargetSite, db: Session) -> int:
     """Scrape a single target site using the Scraper class and return the number of new results."""
     keywords = db.query(models.Keyword).all()
     if not keywords:
-        raise HTTPException(status_code=400, detail="No keywords configured. Please add keywords before scraping.")
+        # Don't raise an exception, just return 0 results if no keywords are set.
+        # This allows the timestamp to still be updated.
+        pass
 
     keyword_list = [k.word for k in keywords]
     scraper_instance = Scraper(keywords=keyword_list)
@@ -70,6 +74,9 @@ def scrape_single_target(target: models.TargetSite, db: Session) -> int:
             db.add(db_item)
             new_count += 1
 
+    # Update the last_scraped_at timestamp for the target
+    target.last_scraped_at = datetime.utcnow()
+    db.add(target)
     db.commit()
     return new_count
 

@@ -2,11 +2,13 @@
   import { onMount } from 'svelte';
   import { api } from '../api';
   import KeywordManager from './KeywordManager.svelte';
+  import { formatDistanceToNow } from 'date-fns';
 
   type Target = {
     id: number;
     name: string;
     url: string;
+    last_scraped_at: string | null;
   };
 
   let targets: Target[] = [];
@@ -14,6 +16,17 @@
   let newTargetUrl = '';
   let isLoading = true;
   let errorMessage = '';
+  let filterText = '';
+
+  $: filteredTargets = targets.filter(target =>
+    target.name?.toLowerCase().includes(filterText.toLowerCase()) ||
+    target.url.toLowerCase().includes(filterText.toLowerCase())
+  );
+
+  function formatTimestamp(timestamp: string | null) {
+    if (!timestamp) return 'Never';
+    return `${formatDistanceToNow(new Date(timestamp))} ago`;
+  }
 
   async function fetchTargets() {
     isLoading = true;
@@ -80,19 +93,39 @@
 
       <div>
         <h4 class="font-semibold mb-2">Existing Targets</h4>
+        <input
+          type="text"
+          placeholder="Filter targets..."
+          bind:value={filterText}
+          class="input input-bordered w-full mb-4"
+        />
         {#if isLoading}
           <p>Loading targets...</p>
         {:else if targets.length === 0}
           <p>No targets configured yet.</p>
+        {:else if filteredTargets.length === 0}
+          <p>No targets match your filter.</p>
         {:else}
-          <ul class="space-y-2">
-            {#each targets as target (target.id)}
-              <li class="p-4 bg-gray-50 rounded-md border border-gray-200">
-                <p class="font-bold text-gray-800">{target.name || 'Unnamed'}</p>
-                <p class="text-sm text-gray-600 break-all">{target.url}</p>
-              </li>
-            {/each}
-          </ul>
+          <div class="overflow-x-auto">
+            <table class="table w-full">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>URL</th>
+                  <th>Last Scraped</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each filteredTargets as target (target.id)}
+                  <tr>
+                    <td class="font-bold">{target.name || 'Unnamed'}</td>
+                    <td class="text-sm break-all">{target.url}</td>
+                    <td class="text-sm">{formatTimestamp(target.last_scraped_at)}</td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
         {/if}
       </div>
     </div>

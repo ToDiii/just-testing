@@ -18,6 +18,7 @@ class TargetSite(Base):
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
     added_at = Column(DateTime, default=datetime.utcnow)
+    last_scraped_at = Column(DateTime, nullable=True)
 
     results = relationship("ScrapeResult", back_populates="target")
 
