@@ -17,6 +17,7 @@ class TargetSite(TargetSiteBase):
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     added_at: datetime
+    last_scraped_at: Optional[datetime] = None
 
     class Config:
         orm_mode = True

@@ -1,38 +1,32 @@
-# Stage 1: Build the Svelte frontend
-FROM node:18-slim as builder
-
-WORKDIR /app
-
-COPY package.json package-lock.json ./
-RUN npm install --legacy-peer-deps
-
-COPY . .
-
-RUN npm run build
-
-# Stage 2: Build the Python backend
+# Use a single stage build for simplicity and to support development mode
 FROM python:3.11-slim
 
+# Install system dependencies, including curl to fetch Node.js
 RUN apt-get update && apt-get install -y \
+    curl \
     tesseract-ocr \
     poppler-utils \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
-    libxrender-dev
+    libxrender-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Node.js v18
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs
 
 WORKDIR /app
 
-COPY requirements.txt .
+# Copy all source files
+COPY . .
+
+# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY scraper.py ./
-COPY scraper_lib ./scraper_lib
-COPY webapp ./webapp
-COPY seed_db.py ./
-COPY import_data.py ./
-COPY find_urls.py ./
-COPY --from=builder /app/dist ./dist
+# Install Node.js dependencies and build frontend
+RUN npm install --legacy-peer-deps
+RUN npm run build
 
 # Set environment variable for the API key and Python Path
 ENV API_KEY ""
