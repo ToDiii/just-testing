@@ -2,7 +2,6 @@
   import 'leaflet/dist/leaflet.css';
   import { LeafletMap, TileLayer, Marker, Popup } from 'svelte-leafletjs';
   import { onMount } from 'svelte';
-  import { buildInfo } from 'virtual:build-info';
 
   export let targets: any[] = [];
 
@@ -53,7 +52,4 @@
       {/each}
     </LeafletMap>
   {/if}
-  <div class="absolute bottom-2 right-2 bg-gray-800 text-white text-xs p-2 rounded shadow-lg z-[1000]">
-    Build: {buildInfo.buildDate}
-  </div>
 </div>
