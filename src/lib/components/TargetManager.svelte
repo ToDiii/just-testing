@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { api } from '../api';
-  import KeywordManager from './KeywordManager.svelte';
-  import { formatDistanceToNow } from 'date-fns';
+  import { onMount } from "svelte";
+  import { api } from "../api";
+  import KeywordManager from "./KeywordManager.svelte";
+  import { formatDistanceToNow } from "date-fns";
 
   type Target = {
     id: number;
@@ -12,67 +12,68 @@
   };
 
   let targets: Target[] = [];
-  let newTargetName = '';
-  let newTargetUrl = '';
+  let newTargetName = "";
+  let newTargetUrl = "";
   let isLoading = true;
-  let errorMessage = '';
-  let filterText = '';
+  let errorMessage = "";
+  let filterText = "";
 
   type ScrapeStatus = {
     last_scrape_start: string | null;
     last_scrape_end: string | null;
-    scrape_status: 'idle' | 'running';
+    scrape_status: "idle" | "running";
   };
 
   let scrapeStatus: ScrapeStatus = {
     last_scrape_start: null,
     last_scrape_end: null,
-    scrape_status: 'idle',
+    scrape_status: "idle",
   };
 
   let isScraping = false;
 
   async function fetchScrapeStatus() {
     try {
-      scrapeStatus = await api('/api/scrape/status');
-      isScraping = scrapeStatus.scrape_status === 'running';
+      scrapeStatus = await api("/api/scrape/status");
+      isScraping = scrapeStatus.scrape_status === "running";
     } catch (error) {
-      console.error('Failed to fetch scrape status:', error);
+      console.error("Failed to fetch scrape status:", error);
     }
   }
 
   async function scrapeAllTargets() {
     isScraping = true;
-    errorMessage = '';
+    errorMessage = "";
     try {
-      await api('/api/scrape', { method: 'POST' });
+      await api("/api/scrape", { method: "POST" });
       // After scraping, refresh both the targets (for timestamps) and the status
       await fetchTargets();
       await fetchScrapeStatus();
     } catch (error) {
-      errorMessage = error.message;
+      errorMessage = (error as Error).message;
     } finally {
       isScraping = false;
     }
   }
 
-  $: filteredTargets = targets.filter(target =>
-    target.name?.toLowerCase().includes(filterText.toLowerCase()) ||
-    target.url.toLowerCase().includes(filterText.toLowerCase())
+  $: filteredTargets = targets.filter(
+    (target) =>
+      target.name?.toLowerCase().includes(filterText.toLowerCase()) ||
+      target.url.toLowerCase().includes(filterText.toLowerCase()),
   );
 
   function formatTimestamp(timestamp: string | null) {
-    if (!timestamp) return 'Never';
+    if (!timestamp) return "Never";
     return `${formatDistanceToNow(new Date(timestamp))} ago`;
   }
 
   async function fetchTargets() {
     isLoading = true;
-    errorMessage = '';
+    errorMessage = "";
     try {
-      targets = await api('/api/targets/');
+      targets = await api("/api/targets/");
     } catch (error) {
-      errorMessage = error.message;
+      errorMessage = (error as Error).message;
     } finally {
       isLoading = false;
     }
@@ -80,20 +81,20 @@
 
   async function addTarget() {
     if (!newTargetUrl) {
-      errorMessage = 'URL is required.';
+      errorMessage = "URL is required.";
       return;
     }
     try {
-      await api('/api/targets/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      await api("/api/targets/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newTargetName, url: newTargetUrl }),
       });
-      newTargetName = '';
-      newTargetUrl = '';
+      newTargetName = "";
+      newTargetUrl = "";
       fetchTargets(); // Refresh the list
     } catch (error) {
-      errorMessage = error.message;
+      errorMessage = (error as Error).message;
     }
   }
 
@@ -108,8 +109,19 @@
     <h2 class="text-2xl font-bold">Manage Targets & Keywords</h2>
     <a href="/api/docs" target="_blank" class="btn btn-ghost">
       API Docs
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="h-4 w-4"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+        />
       </svg>
     </a>
   </div>
@@ -158,8 +170,16 @@
         </div>
 
         <div class="text-sm text-gray-500 mb-4 p-2 bg-gray-50 rounded-md">
-          <p>Last scrape started: {formatTimestamp(scrapeStatus.last_scrape_start)}</p>
-          <p>Last scrape finished: {formatTimestamp(scrapeStatus.last_scrape_end)}</p>
+          <p>
+            Last scrape started: {formatTimestamp(
+              scrapeStatus.last_scrape_start,
+            )}
+          </p>
+          <p>
+            Last scrape finished: {formatTimestamp(
+              scrapeStatus.last_scrape_end,
+            )}
+          </p>
         </div>
 
         <input
@@ -187,9 +207,11 @@
               <tbody>
                 {#each filteredTargets as target (target.id)}
                   <tr>
-                    <td class="font-bold">{target.name || 'Unnamed'}</td>
+                    <td class="font-bold">{target.name || "Unnamed"}</td>
                     <td class="text-sm break-all">{target.url}</td>
-                    <td class="text-sm">{formatTimestamp(target.last_scraped_at)}</td>
+                    <td class="text-sm"
+                      >{formatTimestamp(target.last_scraped_at)}</td
+                    >
                   </tr>
                 {/each}
               </tbody>

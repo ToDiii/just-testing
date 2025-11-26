@@ -37,7 +37,7 @@
       dispatch('searchcomplete', { targets: nearbyTargets, center: { lat, lon } });
 
     } catch (error) {
-      errorMessage = error.message;
+      errorMessage = (error as Error).message;
     } finally {
       isLoading = false;
     }

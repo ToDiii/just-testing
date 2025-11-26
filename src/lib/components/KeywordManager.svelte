@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { api } from '../api';
+  import { onMount } from "svelte";
+  import { api } from "../api";
 
   type Keyword = {
     id: number;
@@ -8,17 +8,17 @@
   };
 
   let keywords: Keyword[] = [];
-  let newKeyword = '';
+  let newKeyword = "";
   let isLoading = true;
-  let errorMessage = '';
+  let errorMessage = "";
 
   async function fetchKeywords() {
     isLoading = true;
-    errorMessage = '';
+    errorMessage = "";
     try {
-      keywords = await api('/api/keywords/');
+      keywords = await api("/api/keywords/");
     } catch (error) {
-      errorMessage = error.message;
+      errorMessage = (error as Error).message;
     } finally {
       isLoading = false;
     }
@@ -26,30 +26,30 @@
 
   async function addKeyword() {
     if (!newKeyword) {
-      errorMessage = 'Keyword cannot be empty.';
+      errorMessage = "Keyword cannot be empty.";
       return;
     }
     try {
-      await api('/api/keywords/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      await api("/api/keywords/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ word: newKeyword }),
       });
-      newKeyword = '';
+      newKeyword = "";
       fetchKeywords(); // Refresh the list
     } catch (error) {
-      errorMessage = error.message;
+      errorMessage = (error as Error).message;
     }
   }
 
   async function deleteKeyword(id: number) {
     try {
       await api(`/api/keywords/${id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
       fetchKeywords(); // Refresh the list
     } catch (error) {
-      errorMessage = error.message;
+      errorMessage = (error as Error).message;
     }
   }
 

@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { api } from '../api';
+  import { onMount } from "svelte";
+  import { api } from "../api";
 
   type ScrapeResult = {
     id: number;
@@ -15,19 +15,19 @@
   let results: ScrapeResult[] = [];
   let isLoading = true;
   let isScraping = false;
-  let errorMessage = '';
-  let filterSearch = '';
+  let errorMessage = "";
+  let filterSearch = "";
 
   async function fetchResults() {
     isLoading = true;
-    errorMessage = '';
+    errorMessage = "";
     const params = new URLSearchParams();
-    if (filterSearch) params.append('search', filterSearch);
+    if (filterSearch) params.append("search", filterSearch);
 
     try {
       results = await api(`/api/results/?${params.toString()}`);
     } catch (error) {
-      errorMessage = error.message;
+      errorMessage = (error as Error).message;
     } finally {
       isLoading = false;
     }
@@ -35,12 +35,12 @@
 
   async function runScrape() {
     isScraping = true;
-    errorMessage = '';
+    errorMessage = "";
     try {
-      await api('/api/scrape', { method: 'POST' });
+      await api("/api/scrape", { method: "POST" });
       await fetchResults(); // Refresh results after scrape
     } catch (error) {
-      errorMessage = error.message;
+      errorMessage = (error as Error).message;
     } finally {
       isScraping = false;
     }
@@ -94,7 +94,11 @@
         <tbody>
           {#each results as result (result.id)}
             <tr class="hover">
-              <td><a href={result.url} target="_blank" class="link link-primary">{result.title}</a></td>
+              <td
+                ><a href={result.url} target="_blank" class="link link-primary"
+                  >{result.title}</a
+                ></td
+              >
               <td>{result.source}</td>
               <td>{result.publication_date}</td>
               <td>{new Date(result.scraped_at).toLocaleString()}</td>
