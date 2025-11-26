@@ -25,7 +25,7 @@
     if (filterSearch) params.append("search", filterSearch);
 
     try {
-      results = await api(`/api/results/?${params.toString()}`);
+      results = await api(`/api/results?${params.toString()}`);
     } catch (error) {
       errorMessage = (error as Error).message;
     } finally {

@@ -16,7 +16,7 @@
     isLoading = true;
     errorMessage = "";
     try {
-      keywords = await api("/api/keywords/");
+      keywords = await api("/api/keywords");
     } catch (error) {
       errorMessage = (error as Error).message;
     } finally {
@@ -30,7 +30,7 @@
       return;
     }
     try {
-      await api("/api/keywords/", {
+      await api("/api/keywords", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ word: newKeyword }),

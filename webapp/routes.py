@@ -21,7 +21,7 @@ def get_db():
         db.close()
 
 
-@router.post("/targets/", response_model=schemas.TargetSite)
+@router.post("/targets", response_model=schemas.TargetSite)
 def create_target(target: schemas.TargetSiteCreate, db: Session = Depends(get_db)):
     db_target = db.query(models.TargetSite).filter(models.TargetSite.url == target.url).first()
     if db_target:
@@ -45,7 +45,7 @@ def create_target(target: schemas.TargetSiteCreate, db: Session = Depends(get_db
     return db_target
 
 
-@router.get("/targets/", response_model=List[schemas.TargetSite])
+@router.get("/targets", response_model=List[schemas.TargetSite])
 def read_targets(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return db.query(models.TargetSite).offset(skip).limit(limit).all()
 
@@ -143,7 +143,7 @@ def scrape_target_endpoint(target_id: int, db: Session = Depends(get_db)):
     return {"target_id": target_id, "new_results": new_count, "timestamp": timestamp}
 
 
-@router.get("/results/", response_model=List[schemas.ScrapeResult])
+@router.get("/results", response_model=List[schemas.ScrapeResult])
 def read_results(
     skip: int = 0,
     limit: int = 100,
@@ -184,7 +184,7 @@ def delete_target(target_id: int, db: Session = Depends(get_db)):
     return {"message": f"Target {target_id} deleted"}
 
 
-@router.post("/keywords/", response_model=schemas.Keyword)
+@router.post("/keywords", response_model=schemas.Keyword)
 def create_keyword(keyword: schemas.KeywordCreate, db: Session = Depends(get_db)):
     db_keyword = db.query(models.Keyword).filter(models.Keyword.word == keyword.word).first()
     if db_keyword:
@@ -196,7 +196,7 @@ def create_keyword(keyword: schemas.KeywordCreate, db: Session = Depends(get_db)
     return db_keyword
 
 
-@router.get("/keywords/", response_model=List[schemas.Keyword])
+@router.get("/keywords", response_model=List[schemas.Keyword])
 def read_keywords(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return db.query(models.Keyword).offset(skip).limit(limit).all()
 
@@ -211,7 +211,7 @@ def delete_keyword(keyword_id: int, db: Session = Depends(get_db)):
     return {"message": f"Keyword {keyword_id} deleted"}
 
 
-@router.get("/targets/search-by-radius/", response_model=List[schemas.TargetSite])
+@router.get("/targets/search-by-radius", response_model=List[schemas.TargetSite])
 def search_targets_by_radius(
     lat: float, lon: float, radius: int, db: Session = Depends(get_db)
 ):

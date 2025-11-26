@@ -71,7 +71,7 @@
     isLoading = true;
     errorMessage = "";
     try {
-      targets = await api("/api/targets/");
+      targets = await api("/api/targets");
     } catch (error) {
       errorMessage = (error as Error).message;
     } finally {
@@ -85,7 +85,7 @@
       return;
     }
     try {
-      await api("/api/targets/", {
+      await api("/api/targets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newTargetName, url: newTargetUrl }),
