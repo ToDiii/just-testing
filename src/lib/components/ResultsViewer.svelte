@@ -52,7 +52,11 @@
 <div class="bg-white p-6 rounded-lg shadow-md">
   <div class="flex justify-between items-center mb-4">
     <h2 class="text-2xl font-bold">Scrape Results</h2>
-    <button class="btn btn-primary" on:click={runScrape} disabled={isScraping}>
+    <button
+      class="btn btn-primary hover:brightness-90 transition-all"
+      on:click={runScrape}
+      disabled={isScraping}
+    >
       {#if isScraping}
         <span class="loading loading-spinner"></span>
         Scraping...

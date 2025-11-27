@@ -11,6 +11,7 @@
   let currentView: "map" | "targets" | "results" = "map";
   let allTargets: any[] = [];
   let displayedTargets: any[] = [];
+  let mapCenter: [number, number] | null = null;
 
   type ScrapeStatus = {
     scrape_status: "idle" | "running";
@@ -26,8 +27,11 @@
   }
 
   function handleSearchComplete(event: any) {
-    const { targets: foundTargets } = event.detail;
+    const { targets: foundTargets, center } = event.detail;
     displayedTargets = foundTargets;
+    if (center) {
+      mapCenter = [center.lat, center.lon];
+    }
   }
 
   function resetView() {
@@ -95,7 +99,7 @@
   <div class="container mx-auto p-4 mt-6">
     {#if currentView === "map"}
       <div class="w-full h-[70vh] mb-4 relative">
-        <Map targets={displayedTargets} />
+        <Map targets={displayedTargets} viewCenter={mapCenter} />
       </div>
       <RadiusSearch on:searchcomplete={handleSearchComplete} />
       <button class="btn btn-sm btn-secondary mt-2" on:click={resetView}

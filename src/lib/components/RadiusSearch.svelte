@@ -66,7 +66,11 @@
       class="input input-bordered w-24"
     />
     <span class="p-2">km</span>
-    <button type="submit" class="btn btn-accent" disabled={isLoading}>
+    <button
+      type="submit"
+      class="btn btn-accent hover:brightness-90 transition-all"
+      disabled={isLoading}
+    >
       {#if isLoading}
         Searching...
       {:else}

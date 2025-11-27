@@ -12,7 +12,7 @@ from .routes import router as api_router
 
 models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Scraper Web API")
+app = FastAPI(title="Scraper Web API", docs_url="/api/docs", openapi_url="/api/openapi.json")
 
 # API router
 app.include_router(api_router, prefix="/api")

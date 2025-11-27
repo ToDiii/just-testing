@@ -28,6 +28,7 @@ class ScrapeResult(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     target_id = Column(Integer, ForeignKey("target_sites.id"))
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
     title = Column(String)
     description = Column(Text)
     publication_date = Column(String)
@@ -37,6 +38,15 @@ class ScrapeResult(Base):
     scraped_at = Column(DateTime, default=datetime.utcnow)
 
     target = relationship("TargetSite", back_populates="results")
+    category = relationship("Category")
+
+
+class Category(Base):
+    __tablename__ = "categories"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True, nullable=False)
+    keywords = relationship("Keyword", back_populates="category")
 
 
 class Keyword(Base):
@@ -44,7 +54,10 @@ class Keyword(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     word = Column(String, unique=True, index=True, nullable=False)
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
     added_at = Column(DateTime, default=datetime.utcnow)
+
+    category = relationship("Category", back_populates="keywords")
 
 
 class GlobalState(Base):

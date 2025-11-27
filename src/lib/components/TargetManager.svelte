@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { api } from "../api";
   import KeywordManager from "./KeywordManager.svelte";
+  import CategoryManager from "./CategoryManager.svelte";
   import { formatDistanceToNow } from "date-fns";
 
   type Target = {
@@ -145,7 +146,11 @@
             class="input input-bordered w-full"
           />
         </div>
-        <button type="submit" class="btn btn-primary">Add Target</button>
+        <button
+          type="submit"
+          class="btn btn-primary hover:brightness-90 transition-all"
+          >Add Target</button
+        >
       </form>
 
       {#if errorMessage}
@@ -156,7 +161,7 @@
         <div class="flex justify-between items-center mb-4">
           <h4 class="font-semibold">Existing Targets</h4>
           <button
-            class="btn btn-secondary"
+            class="btn btn-secondary hover:brightness-90 transition-all"
             on:click={scrapeAllTargets}
             disabled={isScraping}
           >
@@ -222,6 +227,7 @@
     </div>
 
     <div>
+      <CategoryManager />
       <KeywordManager />
     </div>
   </div>

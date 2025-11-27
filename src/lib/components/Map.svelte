@@ -1,7 +1,7 @@
 <script lang="ts">
-  import 'leaflet/dist/leaflet.css';
-  import { LeafletMap, TileLayer, Marker, Popup } from 'svelte-leafletjs';
-  import { onMount } from 'svelte';
+  import "leaflet/dist/leaflet.css";
+  import { LeafletMap, TileLayer, Marker, Popup } from "svelte-leafletjs";
+  import { onMount } from "svelte";
 
   export let targets: any[] = [];
 
@@ -9,7 +9,7 @@
   let L: any;
 
   // Filter targets that have valid coordinates
-  $: markers = targets.filter(t => t.latitude != null && t.longitude != null);
+  $: markers = targets.filter((t) => t.latitude != null && t.longitude != null);
 
   // Default map center (Germany)
   const mapOptions = {
@@ -19,17 +19,25 @@
 
   onMount(async () => {
     // Dynamically import Leaflet only on the client side
-    L = await import('leaflet');
+    L = await import("leaflet");
 
     // Fix for default icon path issue with bundlers
     // @ts-ignore
     delete L.Icon.Default.prototype._getIconUrl;
     L.Icon.Default.mergeOptions({
-      iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+      iconRetinaUrl:
+        "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+      iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+      shadowUrl:
+        "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
     });
   });
+
+  export let viewCenter: [number, number] | null = null;
+
+  $: if (map && viewCenter) {
+    map.setView(viewCenter, 13); // Zoom level 13 for city view
+  }
 </script>
 
 <div class="h-full w-full">
@@ -44,9 +52,11 @@
       {#each markers as target (target.id)}
         <Marker latLng={[target.latitude, target.longitude]}>
           <Popup>
-            <strong>{target.name || 'Unnamed Target'}</strong>
+            <strong>{target.name || "Unnamed Target"}</strong>
             <br />
-            <a href={target.url} target="_blank" rel="noopener noreferrer">Visit website</a>
+            <a href={target.url} target="_blank" rel="noopener noreferrer"
+              >Visit website</a
+            >
           </Popup>
         </Marker>
       {/each}

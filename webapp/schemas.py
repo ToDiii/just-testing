@@ -44,6 +44,7 @@ class ScrapeResultBase(BaseModel):
     url: str
     source: str
     type: str
+    category_id: Optional[int] = None
 
 
 class ScrapeResultCreate(ScrapeResultBase):
@@ -62,8 +63,24 @@ class TargetWithResults(TargetSite):
     results: List[ScrapeResult] = []
 
 
+class CategoryBase(BaseModel):
+    name: str
+
+
+class CategoryCreate(CategoryBase):
+    pass
+
+
+class Category(CategoryBase):
+    id: int
+
+    class Config:
+        orm_mode = True
+
+
 class KeywordBase(BaseModel):
     word: str
+    category_id: Optional[int] = None
 
 
 class KeywordCreate(KeywordBase):
@@ -73,6 +90,7 @@ class KeywordCreate(KeywordBase):
 class Keyword(KeywordBase):
     id: int
     added_at: datetime
+    category: Optional[Category] = None
 
     class Config:
         orm_mode = True
