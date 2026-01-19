@@ -1,7 +1,6 @@
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
-
-NAV_KEYWORDS = ['aktuelles', 'bekanntmachungen', 'rathaus', 'bauen', 'wirtschaft', 'presse', 'service', 'news', 'mitteilungen']
+from .constants import NAV_KEYWORDS, SKIP_PATTERNS
 
 def find_relevant_links(html_content: str, base_url: str, keywords: list[str]) -> tuple[list[str], list[str]]:
     """
@@ -41,8 +40,7 @@ def find_relevant_links(html_content: str, base_url: str, keywords: list[str]) -
                 # Avoid adding if already added
                 if absolute_url not in html_page_links:
                      # Check skip patterns again just in case
-                    common_skip_patterns = ['impressum', 'datenschutz', 'kontakt', 'sitemap', 'login', 'gallery', 'image', 'logo', 'tel:', 'mailto:']
-                    if not any(skip_word in absolute_url.lower() for skip_word in common_skip_patterns):
+                    if not any(skip_word in absolute_url.lower() for skip_word in SKIP_PATTERNS):
                         html_page_links.add(absolute_url)
 
     return list(html_page_links), list(pdf_links)

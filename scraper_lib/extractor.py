@@ -1,99 +1,71 @@
 import re
 from datetime import datetime
 from bs4 import BeautifulSoup
+from .constants import TITLE_SELECTORS, CONTENT_SELECTORS, DATE_PATTERNS
 
 def _find_date(content_area: BeautifulSoup | str) -> str | None:
-    """
-    Finds a date in a BeautifulSoup tag or a block of text.
-    """
+    """Finds a date in a BeautifulSoup tag or a block of text."""
     if not content_area:
         return None
 
-    if isinstance(content_area, str):
-        text_for_date_search = content_area
-    else:
-        text_for_date_search = content_area.get_text(separator=' ', strip=True)
-
-    # Limit search area for performance
+    text_for_date_search = content_area if isinstance(content_area, str) else content_area.get_text(separator=' ', strip=True)
     text_for_date_search = text_for_date_search[:4000]
 
-    date_patterns = [
-        r'(\b\d{1,2}\.\s*\d{1,2}\.\s*\d{2,4}\b)',
-        r'(\b\d{4}-\d{1,2}-\d{1,2}\b)',
-        r'(\b\d{1,2}-\d{1,2}-\d{2,4}\b)',
-        r'(\b\d{1,2}\/\d{1,2}\/\d{2,4}\b)',
-        r'(\d{1,2}\.\s*(?:Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember|Jan|Feb|Mrz|Apr|Jun|Jul|Aug|Sep|Okt|Nov|Dez)\.?\s*\d{4})'
-    ]
-
-    for pattern in date_patterns:
+    for pattern in DATE_PATTERNS:
         match = re.search(pattern, text_for_date_search, re.IGNORECASE)
         if match:
-            date_candidate = match.group(1)
-            # A more sophisticated date parser could be used here, but for now, returning the string is sufficient.
-            return date_candidate
-
+            return match.group(1)
     return None
 
 def extract_data_from_html_page(page_url: str, html_content: str, keywords: list[dict], source_municipality_name: str) -> list[dict]:
     """Extracts title, description, date, etc., from an HTML page."""
     soup = BeautifulSoup(html_content, 'html.parser')
     extracted_items = []
+    
+    # 1. Title Extraction
     title = ""
-    title_selectors_try = [
-        'h1.title', 'h2.title', 'h1.headline', 'h2.headline',
-        'h1.page-title', 'h2.page-title', 'h1.entry-title',
-        'h1[itemprop="headline"]', 'h2[itemprop="headline"]',
-        'h1', 'h2'
-    ]
-    for selector in title_selectors_try:
-        tag_name = selector.split('.')[0] if '.' in selector else selector.split('[')[0]
-        class_name = selector.split('.')[1] if '.' in selector else None
-        if class_name:
-            found_title = soup.find(tag_name, class_=re.compile(class_name, re.I))
+    for selector in TITLE_SELECTORS:
+        found_title = None
+        if '.' in selector:
+            tag, cls = selector.split('.', 1)
+            found_title = soup.find(tag or True, class_=re.compile(cls, re.I))
         elif '[' in selector:
-             attr = selector.split('[')[1].split('=')[0]
-             val = selector.split('=')[1].split(']')[0].strip('"\'')
-             attrs = {attr: re.compile(val, re.I)}
-             found_title = soup.find(tag_name, attrs=attrs)
+            tag = selector.split('[')[0]
+            attr_full = selector.split('[')[1].split(']')[0]
+            key, val = attr_full.split('=')
+            found_title = soup.find(tag or True, {key: re.compile(val.strip('"\''), re.I)})
         else:
-            found_title = soup.find(tag_name)
+            found_title = soup.find(selector)
+        
         if found_title:
             title = found_title.get_text(strip=True)
             break
+    
     if not title and soup.title:
-        title = soup.title.string.strip()
+        title = soup.title.string.strip() if soup.title.string else ""
 
-    main_content_selectors = [
-        'article.news-article', 'div.news-detail', 'div.news_article', 'div.aktuelles_detail',
-        'main#main', 'div#content', 'main.main-content', 'div.main-content',
-        'article', 'main', '.content-block', '.text', '.entry-content', '.page-content',
-        'div[role="main"]'
-    ]
+    # 2. Content Area Extraction
     content_area = None
-    for selector in main_content_selectors:
+    for selector in CONTENT_SELECTORS:
         if '#' in selector:
             tag, elem_id = selector.split('#', 1)
             content_area = soup.find(tag or True, id=elem_id)
         elif '.' in selector:
-            if selector.startswith('.'):
-                tag_name = 'div'
-                class_name = selector[1:]
-            else:
-                tag_name, class_name = selector.split('.', 1)
-            content_area = soup.find(tag_name, class_=re.compile(r'\b' + re.escape(class_name) + r'\b', re.I))
+            tag = 'div' if selector.startswith('.') else selector.split('.', 1)[0]
+            cls = selector[1:] if selector.startswith('.') else selector.split('.', 1)[1]
+            content_area = soup.find(tag, class_=re.compile(r'\b' + re.escape(cls) + r'\b', re.I))
         elif '[' in selector:
-            tag_name = selector.split('[')[0]
+            tag = selector.split('[')[0]
             try:
                 attr_full = selector.split('[')[1].split(']')[0]
-                attr_key = attr_full.split('=')[0]
-                attr_val = attr_full.split('=')[1].strip('"\'')
-                content_area = soup.find(tag_name, {attr_key: re.compile(attr_val, re.I)})
-            except IndexError:
-                 pass
+                key, val = attr_full.split('=')
+                content_area = soup.find(tag or True, {key: re.compile(val.strip('"\''), re.I)})
+            except (IndexError, ValueError): pass
         else:
             content_area = soup.find(selector)
-        if content_area:
-            break
+        
+        if content_area: break
+    
     if not content_area:
         content_area = soup.body
 

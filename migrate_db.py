@@ -32,5 +32,35 @@ def migrate_db():
         except Exception as e:
             print(f"Column might already exist or error occurred: {e}")
 
+        # Create regions table
+        print("Creating regions table...")
+        from webapp.models import Region
+        Region.__table__.create(engine, checkfirst=True)
+
+        # Add region_id column to target_sites table
+        print("Adding region_id column to target_sites table...")
+        try:
+            connection.execute(text("ALTER TABLE target_sites ADD COLUMN region_id INTEGER REFERENCES regions(id)"))
+            print("Column added successfully.")
+        except Exception as e:
+            print(f"Column might already exist or error occurred: {e}")
+
+        # Create notification_configs table
+        print("Creating notification_configs table...")
+        from webapp.models import NotificationConfig
+        NotificationConfig.__table__.create(engine, checkfirst=True)
+
+        # Create scraping_configs table
+        print("Creating scraping_configs table...")
+        from webapp.models import ScrapingConfig
+        ScrapingConfig.__table__.create(engine, checkfirst=True)
+
+        # Insert default config if not exists
+        with engine.begin() as conn:
+            result = conn.execute(text("SELECT COUNT(*) FROM scraping_configs"))
+            if result.scalar() == 0:
+                conn.execute(text("INSERT INTO scraping_configs (max_html_links, max_pdf_links, request_delay) VALUES (15, 10, 0.5)"))
+                print("Inserted default scraping configuration.")
+
 if __name__ == "__main__":
     migrate_db()

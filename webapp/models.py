@@ -15,12 +15,14 @@ class TargetSite(Base):
     name = Column(String, nullable=True)
     postleitzahl = Column(String, index=True, nullable=True)
     url = Column(String, unique=True, nullable=False)
+    region_id = Column(Integer, ForeignKey("regions.id"), nullable=True)
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
     added_at = Column(DateTime, default=datetime.utcnow)
     last_scraped_at = Column(DateTime, nullable=True)
 
     results = relationship("ScrapeResult", back_populates="target")
+    region = relationship("Region", back_populates="targets")
 
 
 class ScrapeResult(Base):
@@ -36,6 +38,7 @@ class ScrapeResult(Base):
     source = Column(String)
     type = Column(String)
     scraped_at = Column(DateTime, default=datetime.utcnow)
+    is_ignored = Column(Integer, default=0) # 0 = active, 1 = ignored (deleted)
 
     target = relationship("TargetSite", back_populates="results")
     category = relationship("Category")
@@ -68,3 +71,35 @@ class GlobalState(Base):
     last_scrape_start = Column(DateTime, nullable=True)
     last_scrape_end = Column(DateTime, nullable=True)
     scrape_status = Column(String, default="idle")
+
+
+class NotificationConfig(Base):
+    __tablename__ = "notification_configs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    type = Column(String, nullable=False)  # "email" or "webhook"
+    recipient = Column(String, nullable=False)  # email address or webhook URL
+    enabled = Column(Integer, default=1)  # 1 for true, 0 for false (using Integer for SQLite boolean)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ScrapingConfig(Base):
+    __tablename__ = "scraping_configs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    max_html_links = Column(Integer, default=15)
+    max_pdf_links = Column(Integer, default=10)
+    request_delay = Column(Float, default=0.5)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Region(Base):
+    __tablename__ = "regions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True, nullable=False)
+    type = Column(String, nullable=False)  # "country", "state", "region"
+    parent_id = Column(Integer, ForeignKey("regions.id"), nullable=True)
+
+    parent = relationship("Region", remote_side=[id], backref="children")
+    targets = relationship("TargetSite", back_populates="region")

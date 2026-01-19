@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
@@ -9,8 +9,83 @@ from scraper import Scraper
 from .geocoding import geocode_location
 from .utils import haversine_distance
 from .security import get_api_key
+from .notifications import send_notifications
 
 router = APIRouter(dependencies=[Depends(get_api_key)])
+
+@router.get("/scrape/logs", response_model=List[str])
+def get_scrape_logs():
+    """Retrieve current scrape logs."""
+    return Scraper.get_logs()
+
+
+@router.delete("/scrape/logs")
+def clear_scrape_logs():
+    """Clear existing scrape logs."""
+    Scraper.clear_logs()
+    return {"message": "Logs cleared"}
+
+def run_background_scrape(db_session_factory, region_id: Optional[int] = None, target_id: Optional[int] = None, target_ids: Optional[str] = None):
+    """Background task to run the scrape."""
+    db = db_session_factory()
+    state = db.query(models.GlobalState).filter_by(key="global_scrape_status").first()
+    if not state:
+        state = models.GlobalState(key="global_scrape_status", scrape_status="idle")
+        db.add(state)
+        db.commit()
+
+    # Reset cancel flag at start
+    cancel_flag = db.query(models.GlobalState).filter_by(key="should_cancel_scrape").first()
+    if cancel_flag:
+        cancel_flag.scrape_status = "0"
+        db.commit()
+
+    state.scrape_status = "running"
+    state.last_scrape_start = datetime.utcnow()
+    db.commit()
+
+    try:
+        query = db.query(models.TargetSite)
+        if target_ids:
+            id_list = [int(i.strip()) for i in target_ids.split(",") if i.strip().isdigit()]
+            if id_list:
+                query = query.filter(models.TargetSite.id.in_(id_list))
+        elif target_id:
+            query = query.filter(models.TargetSite.id == target_id)
+        elif region_id:
+            query = query.filter(models.TargetSite.region_id == region_id)
+        
+        targets = query.all()
+        if not targets:
+            Scraper.log(f"No targets found for filter (region_id: {region_id}, target_id: {target_id})")
+            state.scrape_status = "idle"
+            state.last_scrape_end = datetime.utcnow()
+            db.commit()
+            return
+
+        Scraper.log(f"Starting scrape for {len(targets)} targets...")
+        for i, target in enumerate(targets):
+            # Check for cancellation every loop
+            db.refresh(state) # Refresh to get latest DB state
+            cancel_flag = db.query(models.GlobalState).filter_by(key="should_cancel_scrape").first()
+            if cancel_flag and cancel_flag.scrape_status == "1":
+                Scraper.log("Scrape cancelled by user.")
+                cancel_flag.scrape_status = "0"
+                db.commit()
+                break
+
+            scrape_single_target(target, db)
+            Scraper.log(f"Completed {i+1}/{len(targets)} targets.")
+        
+        state.scrape_status = "idle"
+        state.last_scrape_end = datetime.utcnow()
+        db.commit()
+    except Exception as e:
+        Scraper.log(f"Critical error in background scrape: {e}")
+        state.scrape_status = "idle"
+        db.commit()
+    finally:
+        db.close()
 
 
 def get_db():
@@ -19,6 +94,19 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+@router.post("/scrape/stop")
+def stop_scrape(db: Session = Depends(get_db)):
+    """Stop the current background scrape."""
+    cancel_flag = db.query(models.GlobalState).filter_by(key="should_cancel_scrape").first()
+    if not cancel_flag:
+        cancel_flag = models.GlobalState(key="should_cancel_scrape", scrape_status="1")
+        db.add(cancel_flag)
+    else:
+        cancel_flag.scrape_status = "1"
+    db.commit()
+    return {"message": "Cancellation requested"}
 
 
 @router.post("/targets", response_model=schemas.TargetSite)
@@ -78,18 +166,38 @@ def scrape_single_target(target: models.TargetSite, db: Session) -> int:
         pass
 
     keyword_list = [{"word": k.word, "category_id": k.category_id} for k in keywords]
-    scraper_instance = Scraper(keywords=keyword_list)
+    
+    # Fetch global scraping config
+    config = db.query(models.ScrapingConfig).first()
+    if not config:
+        # Default values if no config exists
+        scraper_instance = Scraper(keywords=keyword_list)
+    else:
+        scraper_instance = Scraper(
+            keywords=keyword_list,
+            max_html_links=config.max_html_links,
+            max_pdf_links=config.max_pdf_links,
+            delay=config.request_delay
+        )
 
     site_name = target.name or target.url
     results = scraper_instance.scrape_site(site_name, target.url)
 
     new_count = 0
+    new_items = []
     for item in results:
         exists = db.query(models.ScrapeResult).filter_by(url=item['url'], target_id=target.id).first()
         if not exists:
             db_item = models.ScrapeResult(target_id=target.id, **item)
             db.add(db_item)
             new_count += 1
+            new_items.append(item)
+    
+    if new_items:
+        try:
+            send_notifications(new_items, db)
+        except Exception as e:
+            print(f"Error sending notifications: {e}")
 
     # Update the last_scraped_at timestamp for the target
     target.last_scraped_at = datetime.utcnow()
@@ -99,38 +207,30 @@ def scrape_single_target(target: models.TargetSite, db: Session) -> int:
 
 
 @router.post("/scrape")
-def scrape_targets(db: Session = Depends(get_db)):
+def trigger_scrape(
+    background_tasks: BackgroundTasks,
+    region_id: Optional[int] = None,
+    target_id: Optional[int] = None,
+    target_ids: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Trigger a scrape operation in the background.
+    - region_id: Optional filter for a specific region.
+    - target_id: Optional filter for a specific target.
+    - target_ids: Optional comma-separated list of target IDs.
+    """
     state = get_or_create_global_state(db)
     if state.scrape_status == "running":
         raise HTTPException(status_code=409, detail="A scrape is already in progress.")
+    
+    # Clear logs before starting
+    Scraper.clear_logs()
+    
+    # We pass the SessionLocal factory because background tasks need their own session
+    background_tasks.add_task(run_background_scrape, SessionLocal, region_id, target_id, target_ids)
 
-    # Set status to running
-    state.scrape_status = "running"
-    state.last_scrape_start = datetime.utcnow()
-    db.commit()
-
-    try:
-        targets = db.query(models.TargetSite).all()
-        if not targets:
-            raise HTTPException(status_code=400, detail="No targets configured")
-
-        summary = []
-        for target in targets:
-            count = scrape_single_target(target, db)
-            summary.append({"target_id": target.id, "name": target.name, "new_results": count})
-
-        # Set status to idle and update end time
-        state.scrape_status = "idle"
-        state.last_scrape_end = datetime.utcnow()
-        db.commit()
-
-        return {"status": "scrape_complete", "summary": summary}
-    except Exception as e:
-        # In case of an error, reset the status
-        state.scrape_status = "idle"
-        db.commit()
-        # Re-raise the exception
-        raise e
+    return {"message": "Scrape started in background"}
 
 
 @router.post("/scrape/{target_id}")
@@ -150,16 +250,21 @@ def read_results(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     target_id: Optional[int] = None,
+    target_ids: Optional[str] = None,
     search: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
-    query = db.query(models.ScrapeResult)
+    query = db.query(models.ScrapeResult).filter(models.ScrapeResult.is_ignored == 0)
     if start_date:
         query = query.filter(models.ScrapeResult.scraped_at >= start_date)
     if end_date:
         query = query.filter(models.ScrapeResult.scraped_at <= end_date)
     if target_id:
         query = query.filter(models.ScrapeResult.target_id == target_id)
+    if target_ids:
+        id_list = [int(i.strip()) for i in target_ids.split(",") if i.strip().isdigit()]
+        if id_list:
+            query = query.filter(models.ScrapeResult.target_id.in_(id_list))
     if search:
         like = f"%{search.lower()}%"
         query = query.filter(
@@ -172,6 +277,16 @@ def read_results(
         .limit(limit)
         .all()
     )
+
+
+@router.post("/results/bulk-ignore")
+def bulk_ignore_results(result_ids: List[int], db: Session = Depends(get_db)):
+    """Mark multiple results as ignored (deleted from UI but kept in DB to avoid re-scrape)."""
+    db.query(models.ScrapeResult).filter(models.ScrapeResult.id.in_(result_ids)).update(
+        {"is_ignored": 1}, synchronize_session=False
+    )
+    db.commit()
+    return {"message": f"Ignored {len(result_ids)} results"}
 
 
 @router.delete("/targets/{target_id}")
@@ -260,3 +375,91 @@ def search_targets_by_radius(
             nearby_targets.append(target)
 
     return nearby_targets
+
+
+@router.get("/regions", response_model=List[schemas.Region])
+def read_regions(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return db.query(models.Region).offset(skip).limit(limit).all()
+
+
+@router.post("/regions", response_model=schemas.Region)
+def create_region(region: schemas.RegionCreate, db: Session = Depends(get_db)):
+    db_region = models.Region(**region.dict())
+    db.add(db_region)
+    db.commit()
+    db.refresh(db_region)
+    return db_region
+
+
+@router.delete("/regions/{region_id}")
+def delete_region(region_id: int, db: Session = Depends(get_db)):
+    region = db.query(models.Region).filter(models.Region.id == region_id).first()
+    if not region:
+        raise HTTPException(status_code=404, detail="Region not found")
+    db.delete(region)
+    db.commit()
+    return {"message": f"Region {region_id} deleted"}
+
+
+@router.post("/notifications/config", response_model=schemas.NotificationConfig)
+def create_notification_config(config: schemas.NotificationConfigCreate, db: Session = Depends(get_db)):
+    db_config = models.NotificationConfig(**config.dict())
+    db.add(db_config)
+    db.commit()
+    db.refresh(db_config)
+    return db_config
+
+
+@router.get("/notifications/config", response_model=List[schemas.NotificationConfig])
+def read_notification_configs(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return db.query(models.NotificationConfig).offset(skip).limit(limit).all()
+
+
+@router.delete("/notifications/config/{config_id}")
+def delete_notification_config(config_id: int, db: Session = Depends(get_db)):
+    config = db.query(models.NotificationConfig).filter(models.NotificationConfig.id == config_id).first()
+    if not config:
+        raise HTTPException(status_code=404, detail="Configuration not found")
+    db.delete(config)
+    db.commit()
+    return {"message": f"Configuration {config_id} deleted"}
+
+
+@router.post("/notifications/test/{config_id}")
+def test_notification_endpoint(config_id: int, db: Session = Depends(get_db)):
+    """Trigger a test notification for a specific configuration."""
+    from .notifications import send_test_notification
+    try:
+        send_test_notification(config_id, db)
+        return {"message": "Test notification sent successfully"}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to send test notification: {str(e)}")
+
+
+@router.get("/config/scraping", response_model=schemas.ScrapingConfig)
+def get_scraping_config(db: Session = Depends(get_db)):
+    config = db.query(models.ScrapingConfig).first()
+    if not config:
+        # Create default config if it doesn't exist
+        config = models.ScrapingConfig()
+        db.add(config)
+        db.commit()
+        db.refresh(config)
+    return config
+
+
+@router.post("/config/scraping", response_model=schemas.ScrapingConfig)
+def update_scraping_config(config_in: schemas.ScrapingConfigCreate, db: Session = Depends(get_db)):
+    config = db.query(models.ScrapingConfig).first()
+    if not config:
+        config = models.ScrapingConfig(**config_in.dict())
+        db.add(config)
+    else:
+        for var, value in config_in.dict().items():
+            setattr(config, var, value)
+    db.commit()
+    db.refresh(config)
+    return config
+

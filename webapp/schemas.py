@@ -6,10 +6,28 @@ from pydantic import BaseModel
 class TargetSiteBase(BaseModel):
     url: str
     name: Optional[str] = None
+    region_id: Optional[int] = None
 
 
 class TargetSiteCreate(TargetSiteBase):
     pass
+
+
+class RegionBase(BaseModel):
+    name: str
+    type: str  # "country", "state", "region"
+    parent_id: Optional[int] = None
+
+
+class RegionCreate(RegionBase):
+    pass
+
+
+class Region(RegionBase):
+    id: int
+
+    class Config:
+        from_attributes = True
 
 
 class TargetSite(TargetSiteBase):
@@ -18,9 +36,10 @@ class TargetSite(TargetSiteBase):
     longitude: Optional[float] = None
     added_at: datetime
     last_scraped_at: Optional[datetime] = None
+    region: Optional[Region] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class GlobalStateBase(BaseModel):
@@ -34,7 +53,7 @@ class GlobalState(GlobalStateBase):
     key: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class ScrapeResultBase(BaseModel):
@@ -54,9 +73,10 @@ class ScrapeResultCreate(ScrapeResultBase):
 class ScrapeResult(ScrapeResultBase):
     id: int
     scraped_at: datetime
+    is_ignored: int = 0
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class TargetWithResults(TargetSite):
@@ -75,7 +95,7 @@ class Category(CategoryBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class KeywordBase(BaseModel):
@@ -91,6 +111,42 @@ class Keyword(KeywordBase):
     id: int
     added_at: datetime
     category: Optional[Category] = None
+
+    class Config:
+        from_attributes = True
+
+
+class NotificationConfigBase(BaseModel):
+    type: str
+    recipient: str
+    enabled: bool = True
+
+
+class NotificationConfigCreate(NotificationConfigBase):
+    pass
+
+
+class NotificationConfig(NotificationConfigBase):
+    id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ScrapingConfigBase(BaseModel):
+    max_html_links: int = 15
+    max_pdf_links: int = 10
+    request_delay: float = 0.5
+
+
+class ScrapingConfigCreate(ScrapingConfigBase):
+    pass
+
+
+class ScrapingConfig(ScrapingConfigBase):
+    id: int
+    updated_at: datetime
 
     class Config:
         orm_mode = True
