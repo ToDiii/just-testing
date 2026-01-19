@@ -12,6 +12,19 @@ The project consists of three main parts:
 
 The application is designed to be run with Docker, which simplifies setup and ensures a consistent environment.
 
+## Project Structure
+
+Here is an overview of the key files and directories in the project:
+
+- **`src/`**: The frontend source code (Svelte + Tailwind CSS).
+- **`webapp/`**: The backend source code (search logic, API routes, database models).
+- **`scraper_lib/`**: The core scraping library containing logic for fetching, parsing, and extracting data.
+- **`scraper.py`**: The main scraper wrapper class used by the backend.
+- **`webapp.db`**: The SQLite database file (created after running the app).
+- **`seed_db.py`**: Script to populate the database with initial test data.
+- **`import_data.py`**: Script to import large datasets of municipalities.
+- **`install.sh`**: Helper script for Proxmox LXC installation.
+
 ## Proxmox LXC Installation (Recommended for Production)
 
 For a dedicated, lightweight production environment, you can install the application in a Proxmox LXC container using the provided installation script.

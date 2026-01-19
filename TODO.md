@@ -29,6 +29,6 @@ This document lists the planned steps for optimizing and modernizing the project
 - [ ] **Scraper Refactoring**: Refactor the `scraper.py` code into a clean, class-based structure.
 - [ ] **Frontend Modernization**: Rebuild the user interface with Svelte and replace the old templates.
 - [ ] **Backend Adaptation**: Adapt the FastAPI backend for the new Svelte application.
-- [ ] **Update Documentation**: Bring the `README.md` up to date.
-- [ ] **Clean up Project**: Remove obsolete files (templates, etc.).
+- [x] **Update Documentation**: Bring the `README.md` up to date.
+- [x] **Clean up Project**: Remove obsolete files (templates, etc.).
 - [ ] **Tests**: Ensure that all components function as expected after the changes.
