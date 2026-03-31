@@ -15,6 +15,8 @@
         max_pdf_links: 10,
         request_delay: 0.5,
         scraper_engine: "requests",
+        crawl4ai_server_url: "",
+        crawl4ai_fallback: true,
     };
 
     let notificationConfigs: NotificationConfig[] = [];
@@ -197,7 +199,7 @@
                     ? "Wähle die Engine für das Web-Crawling. Crawl4AI nutzt einen echten Browser (Headless Chromium) und unterstützt JavaScript-gerenderte Seiten."
                     : "Choose the crawling engine. Crawl4AI uses a real headless browser and supports JavaScript-rendered pages — useful for modern municipality sites."}
             </p>
-            <div class="flex gap-4">
+            <div class="flex gap-4 mb-4">
                 <label class="flex items-center gap-2 cursor-pointer">
                     <input
                         type="radio"
@@ -223,6 +225,52 @@
                     </span>
                 </label>
             </div>
+
+            {#if scrapingConfig.scraper_engine === "crawl4ai"}
+                <div class="mt-2 space-y-4 border-t border-indigo-200 pt-4">
+                    <!-- External server URL -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">
+                            {$language === "de"
+                                ? "Externer Crawl4AI-Server (optional)"
+                                : "External Crawl4AI Server URL (optional)"}
+                        </label>
+                        <input
+                            type="text"
+                            bind:value={scrapingConfig.crawl4ai_server_url}
+                            placeholder="http://192.168.1.100:11235"
+                            class="input input-bordered input-sm w-full max-w-md font-mono"
+                        />
+                        <p class="text-xs text-gray-500 mt-1 italic">
+                            {$language === "de"
+                                ? "Leer lassen = lokaler Headless-Browser. Befüllen = REST-API eines anderen Crawl4AI-Containers (z.B. Proxmox CT)."
+                                : "Leave empty to use a local headless browser. Fill in to use a remote Crawl4AI container (e.g. another Proxmox CT) via its REST API."}
+                        </p>
+                    </div>
+
+                    <!-- Fallback toggle -->
+                    <label class="flex items-start gap-3 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            bind:checked={scrapingConfig.crawl4ai_fallback}
+                            class="checkbox checkbox-warning checkbox-sm mt-0.5"
+                        />
+                        <span class="text-sm text-gray-700">
+                            <span class="font-semibold">
+                                {$language === "de"
+                                    ? "Fallback auf requests bei Fehler"
+                                    : "Fall back to requests engine on failure"}
+                            </span>
+                            <br />
+                            <span class="text-xs text-gray-500 italic">
+                                {$language === "de"
+                                    ? "Wenn Crawl4AI nicht erreichbar ist oder abstürzt, wird automatisch auf den normalen Scraper umgeschaltet."
+                                    : "If Crawl4AI is unreachable or crashes, the scraper automatically retries with the requests engine."}
+                            </span>
+                        </span>
+                    </label>
+                </div>
+            {/if}
         </div>
 
         <button
