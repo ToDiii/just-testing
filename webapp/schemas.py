@@ -138,6 +138,7 @@ class ScrapingConfigBase(BaseModel):
     max_html_links: int = 15
     max_pdf_links: int = 10
     request_delay: float = 0.5
+    scraper_engine: str = "requests"  # "requests" | "crawl4ai"
 
 
 class ScrapingConfigCreate(ScrapingConfigBase):

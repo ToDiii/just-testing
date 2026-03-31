@@ -90,6 +90,8 @@ class ScrapingConfig(Base):
     max_html_links = Column(Integer, default=15)
     max_pdf_links = Column(Integer, default=10)
     request_delay = Column(Float, default=0.5)
+    # "requests" = classic BeautifulSoup engine; "crawl4ai" = JS-rendering engine
+    scraper_engine = Column(String, default="requests")
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 

@@ -14,6 +14,7 @@
         max_html_links: 15,
         max_pdf_links: 10,
         request_delay: 0.5,
+        scraper_engine: "requests",
     };
 
     let notificationConfigs: NotificationConfig[] = [];
@@ -185,6 +186,45 @@
                 </p>
             </div>
         </div>
+
+        <!-- Scraper Engine Selector -->
+        <div class="mt-6 p-4 bg-indigo-50 rounded-xl border border-indigo-100">
+            <h4 class="font-semibold text-gray-800 mb-1">
+                {$language === "de" ? "Scraping-Engine" : "Scraping Engine"}
+            </h4>
+            <p class="text-xs text-gray-500 mb-3 italic">
+                {$language === "de"
+                    ? "Wähle die Engine für das Web-Crawling. Crawl4AI nutzt einen echten Browser (Headless Chromium) und unterstützt JavaScript-gerenderte Seiten."
+                    : "Choose the crawling engine. Crawl4AI uses a real headless browser and supports JavaScript-rendered pages — useful for modern municipality sites."}
+            </p>
+            <div class="flex gap-4">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input
+                        type="radio"
+                        bind:group={scrapingConfig.scraper_engine}
+                        value="requests"
+                        class="radio radio-primary radio-sm"
+                    />
+                    <span class="text-sm font-medium text-gray-700">
+                        requests + BeautifulSoup
+                        <span class="ml-1 badge badge-outline badge-xs">Standard</span>
+                    </span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input
+                        type="radio"
+                        bind:group={scrapingConfig.scraper_engine}
+                        value="crawl4ai"
+                        class="radio radio-secondary radio-sm"
+                    />
+                    <span class="text-sm font-medium text-gray-700">
+                        Crawl4AI
+                        <span class="ml-1 badge badge-secondary badge-xs">JS-Support</span>
+                    </span>
+                </label>
+            </div>
+        </div>
+
         <button
             on:click={saveScrapingConfig}
             disabled={isLoading}

@@ -6,6 +6,7 @@ from datetime import datetime
 from . import models, schemas
 from .database import SessionLocal
 from scraper import Scraper
+from scraper_crawl4ai import Crawl4AIScraper
 from .geocoding import geocode_location
 from .utils import haversine_distance
 from .security import get_api_key
@@ -166,19 +167,22 @@ def scrape_single_target(target: models.TargetSite, db: Session) -> int:
         pass
 
     keyword_list = [{"word": k.word, "category_id": k.category_id} for k in keywords]
-    
+
     # Fetch global scraping config
     config = db.query(models.ScrapingConfig).first()
+    engine = config.scraper_engine if config else "requests"
+    ScraperClass = Crawl4AIScraper if engine == "crawl4ai" else Scraper
+
     if not config:
-        # Default values if no config exists
-        scraper_instance = Scraper(keywords=keyword_list)
+        scraper_instance = ScraperClass(keywords=keyword_list)
     else:
-        scraper_instance = Scraper(
+        scraper_instance = ScraperClass(
             keywords=keyword_list,
             max_html_links=config.max_html_links,
             max_pdf_links=config.max_pdf_links,
             delay=config.request_delay
         )
+    Scraper.log(f"Using scraper engine: {engine}")
 
     site_name = target.name or target.url
     results = scraper_instance.scrape_site(site_name, target.url)
