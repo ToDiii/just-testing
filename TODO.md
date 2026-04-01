@@ -4,12 +4,12 @@ Dieses Dokument listet die geplanten Schritte zur Optimierung und Modernisierung
 
 ## Meilensteine
 
-- [ ] **Scraper Refactoring**: Den `scraper.py` Code in eine saubere, klassenbasierte Struktur umwandeln.
-- [ ] **Frontend Modernisierung**: Die Benutzeroberfläche mit Svelte neu aufbauen und die alten Templates ersetzen.
-- [ ] **Backend Anpassung**: Das FastAPI-Backend für die neue Svelte-Anwendung anpassen.
+- [x] **Scraper Refactoring**: Den `scraper.py` Code in eine saubere, klassenbasierte Struktur umwandeln.
+- [x] **Frontend Modernisierung**: Die Benutzeroberfläche mit Svelte neu aufbauen und die alten Templates ersetzen.
+- [x] **Backend Anpassung**: Das FastAPI-Backend für die neue Svelte-Anwendung anpassen.
 - [ ] **Dokumentation aktualisieren**: Die `README.md` auf den neuesten Stand bringen.
 - [ ] **Projekt aufräumen**: Veraltete Dateien (Templates, etc.) entfernen.
-- [ ] **Tests**: Sicherstellen, dass alle Komponenten nach den Änderungen wie erwartet funktionieren.
+- [x] **Tests**: Sicherstellen, dass alle Komponenten nach den Änderungen wie erwartet funktionieren.
 
 ## Zukünftige Feature-Verbesserungen
 
@@ -26,9 +26,9 @@ This document lists the planned steps for optimizing and modernizing the project
 
 ## Milestones
 
-- [ ] **Scraper Refactoring**: Refactor the `scraper.py` code into a clean, class-based structure.
-- [ ] **Frontend Modernization**: Rebuild the user interface with Svelte and replace the old templates.
-- [ ] **Backend Adaptation**: Adapt the FastAPI backend for the new Svelte application.
+- [x] **Scraper Refactoring**: Refactor the `scraper.py` code into a clean, class-based structure.
+- [x] **Frontend Modernization**: Rebuild the user interface with Svelte and replace the old templates.
+- [x] **Backend Adaptation**: Adapt the FastAPI backend for the new Svelte application.
 - [x] **Update Documentation**: Bring the `README.md` up to date.
 - [x] **Clean up Project**: Remove obsolete files (templates, etc.).
-- [ ] **Tests**: Ensure that all components function as expected after the changes.
+- [x] **Tests**: Ensure that all components function as expected after the changes.

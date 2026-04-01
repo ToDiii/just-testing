@@ -1,4 +1,5 @@
 
+import os
 import smtplib
 import requests
 import json
@@ -42,22 +43,30 @@ def send_notifications(new_results: list[dict], db: Session):
             print(f"Failed to send notification to {config.recipient}: {e}")
 
 def _send_email(recipient: str, subject: str, text_body: str, html_body: str):
-    # TODO: Configure SMTP settings via env vars or DB
-    # For now, this is a placeholder or requires local SMTP
-    # In a real app, you'd use SendGrid, AWS SES, or similar
     print(f"  -> Sending email to {recipient}")
     
-    # Example using local debugging server (e.g. python -m smtpd -n -c DebuggingServer localhost:1025)
-    # sender = "noreply@bauscraper.local"
-    # msg = MIMEMultipart("alternative")
-    # msg["Subject"] = subject
-    # msg["From"] = sender
-    # msg["To"] = recipient
-    # msg.attach(MIMEText(text_body, "plain"))
-    # msg.attach(MIMEText(html_body, "html"))
+    smtp_server = os.environ.get("SMTP_SERVER", "localhost")
+    smtp_port = int(os.environ.get("SMTP_PORT", 1025))
+    smtp_user = os.environ.get("SMTP_USER")
+    smtp_pass = os.environ.get("SMTP_PASS")
+    sender_email = os.environ.get("SMTP_SENDER", "noreply@bauscraper.local")
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = sender_email
+    msg["To"] = recipient
+    msg.attach(MIMEText(text_body, "plain"))
+    msg.attach(MIMEText(html_body, "html"))
     
-    # with smtplib.SMTP("localhost", 1025) as server:
-    #     server.sendmail(sender, recipient, msg.as_string())
+    try:
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            if smtp_user and smtp_pass:
+                server.starttls()
+                server.login(smtp_user, smtp_pass)
+            server.sendmail(sender_email, recipient, msg.as_string())
+            print(f"     Email sent successfully to {recipient}")
+    except Exception as e:
+        print(f"     Failed to send email to {recipient}: {e}")
 
 def _send_webhook(url: str, results: list[dict]):
     print(f"  -> Sending webhook to {url}")
