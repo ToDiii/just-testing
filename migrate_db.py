@@ -62,5 +62,18 @@ def migrate_db():
                 conn.execute(text("INSERT INTO scraping_configs (max_html_links, max_pdf_links, request_delay) VALUES (15, 10, 0.5)"))
                 print("Inserted default scraping configuration.")
 
+        # Add new columns to scraping_configs (idempotent)
+        print("Adding Crawl4AI columns to scraping_configs...")
+        for stmt in [
+            "ALTER TABLE scraping_configs ADD COLUMN scraper_engine TEXT DEFAULT 'requests'",
+            "ALTER TABLE scraping_configs ADD COLUMN crawl4ai_server_url TEXT",
+            "ALTER TABLE scraping_configs ADD COLUMN crawl4ai_fallback INTEGER DEFAULT 1",
+        ]:
+            try:
+                connection.execute(text(stmt))
+                print(f"  OK: {stmt.split('ADD COLUMN')[1].strip()}")
+            except Exception as e:
+                print(f"  Skip (already exists): {e}")
+
 if __name__ == "__main__":
     migrate_db()

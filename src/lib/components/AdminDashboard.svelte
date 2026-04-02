@@ -189,96 +189,143 @@
             </div>
         </div>
 
-        <!-- Scraper Engine Selector -->
-        <div class="mt-6 p-4 bg-indigo-50 rounded-xl border border-indigo-100">
-            <h4 class="font-semibold text-gray-800 mb-1">
-                {$language === "de" ? "Scraping-Engine" : "Scraping Engine"}
-            </h4>
-            <p class="text-xs text-gray-500 mb-3 italic">
-                {$language === "de"
-                    ? "Wähle die Engine für das Web-Crawling. Crawl4AI nutzt einen echten Browser (Headless Chromium) und unterstützt JavaScript-gerenderte Seiten."
-                    : "Choose the crawling engine. Crawl4AI uses a real headless browser and supports JavaScript-rendered pages — useful for modern municipality sites."}
-            </p>
-            <div class="flex gap-4 mb-4">
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input
-                        type="radio"
-                        bind:group={scrapingConfig.scraper_engine}
-                        value="requests"
-                        class="radio radio-primary radio-sm"
-                    />
-                    <span class="text-sm font-medium text-gray-700">
-                        requests + BeautifulSoup
-                        <span class="ml-1 badge badge-outline badge-xs">Standard</span>
-                    </span>
-                </label>
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input
-                        type="radio"
-                        bind:group={scrapingConfig.scraper_engine}
-                        value="crawl4ai"
-                        class="radio radio-secondary radio-sm"
-                    />
-                    <span class="text-sm font-medium text-gray-700">
-                        Crawl4AI
-                        <span class="ml-1 badge badge-secondary badge-xs">JS-Support</span>
-                    </span>
-                </label>
-            </div>
-
-            {#if scrapingConfig.scraper_engine === "crawl4ai"}
-                <div class="mt-2 space-y-4 border-t border-indigo-200 pt-4">
-                    <!-- External server URL -->
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">
-                            {$language === "de"
-                                ? "Externer Crawl4AI-Server (optional)"
-                                : "External Crawl4AI Server URL (optional)"}
-                        </label>
-                        <input
-                            type="text"
-                            bind:value={scrapingConfig.crawl4ai_server_url}
-                            placeholder="http://192.168.1.100:11235"
-                            class="input input-bordered input-sm w-full max-w-md font-mono"
-                        />
-                        <p class="text-xs text-gray-500 mt-1 italic">
-                            {$language === "de"
-                                ? "Leer lassen = lokaler Headless-Browser. Befüllen = REST-API eines anderen Crawl4AI-Containers (z.B. Proxmox CT)."
-                                : "Leave empty to use a local headless browser. Fill in to use a remote Crawl4AI container (e.g. another Proxmox CT) via its REST API."}
-                        </p>
-                    </div>
-
-                    <!-- Fallback toggle -->
-                    <label class="flex items-start gap-3 cursor-pointer">
-                        <input
-                            type="checkbox"
-                            bind:checked={scrapingConfig.crawl4ai_fallback}
-                            class="checkbox checkbox-warning checkbox-sm mt-0.5"
-                        />
-                        <span class="text-sm text-gray-700">
-                            <span class="font-semibold">
-                                {$language === "de"
-                                    ? "Fallback auf requests bei Fehler"
-                                    : "Fall back to requests engine on failure"}
-                            </span>
-                            <br />
-                            <span class="text-xs text-gray-500 italic">
-                                {$language === "de"
-                                    ? "Wenn Crawl4AI nicht erreichbar ist oder abstürzt, wird automatisch auf den normalen Scraper umgeschaltet."
-                                    : "If Crawl4AI is unreachable or crashes, the scraper automatically retries with the requests engine."}
-                            </span>
-                        </span>
-                    </label>
-                </div>
-            {/if}
-        </div>
-
         <button
             on:click={saveScrapingConfig}
             disabled={isLoading}
             class="mt-6 btn btn-primary px-8"
         >
             {$t("save_limits")}
+        </button>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ Scraping Engine ══ -->
+    <section class="mb-8 border-b pb-8">
+        <h3 class="text-xl font-semibold mb-4 flex items-center">
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-6 w-6 mr-2 text-purple-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+            >
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"
+                />
+            </svg>
+            {$language === "de" ? "Scraping-Engine" : "Scraping Engine"}
+        </h3>
+
+        <p class="text-sm text-gray-500 mb-5">
+            {$language === "de"
+                ? "Wähle die Engine für das Web-Crawling. requests+BeautifulSoup ist schnell und ohne weitere Installation nutzbar. Crawl4AI nutzt Headless Chromium und unterstützt JavaScript-gerenderte Seiten."
+                : "Choose the crawling engine. requests+BeautifulSoup is fast and works out-of-the-box. Crawl4AI uses a headless browser and supports JavaScript-rendered pages."}
+        </p>
+
+        <div class="flex flex-col sm:flex-row gap-4 mb-6">
+            <label
+                class="flex-1 flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-colors {scrapingConfig.scraper_engine === 'requests' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}"
+            >
+                <input
+                    type="radio"
+                    bind:group={scrapingConfig.scraper_engine}
+                    value="requests"
+                    class="radio radio-primary mt-0.5"
+                />
+                <div>
+                    <p class="font-semibold text-gray-800">
+                        requests + BeautifulSoup
+                        <span class="ml-2 badge badge-outline badge-sm">Standard</span>
+                    </p>
+                    <p class="text-xs text-gray-500 mt-1">
+                        {$language === "de"
+                            ? "Klassisches HTTP-Scraping. Kein Browser, sehr schnell, keine Zusatz-Installation nötig."
+                            : "Classic HTTP scraping. No browser, very fast, no extra setup needed."}
+                    </p>
+                </div>
+            </label>
+
+            <label
+                class="flex-1 flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-colors {scrapingConfig.scraper_engine === 'crawl4ai' ? 'border-purple-500 bg-purple-50' : 'border-gray-200 hover:border-gray-300'}"
+            >
+                <input
+                    type="radio"
+                    bind:group={scrapingConfig.scraper_engine}
+                    value="crawl4ai"
+                    class="radio radio-secondary mt-0.5"
+                />
+                <div>
+                    <p class="font-semibold text-gray-800">
+                        Crawl4AI
+                        <span class="ml-2 badge badge-secondary badge-sm">JS-Support</span>
+                    </p>
+                    <p class="text-xs text-gray-500 mt-1">
+                        {$language === "de"
+                            ? "Headless Chromium. Rendert JavaScript, umgeht einfache Anti-Bot-Maßnahmen. Benötigt crawl4ai + Browser-Installation."
+                            : "Headless Chromium. Renders JavaScript, bypasses basic anti-bot measures. Requires crawl4ai + browser installation."}
+                    </p>
+                </div>
+            </label>
+        </div>
+
+        {#if scrapingConfig.scraper_engine === "crawl4ai"}
+            <div class="space-y-5 p-5 bg-purple-50 rounded-xl border border-purple-100">
+                <h4 class="font-semibold text-purple-900 text-sm uppercase tracking-wide">
+                    {$language === "de" ? "Crawl4AI Einstellungen" : "Crawl4AI Settings"}
+                </h4>
+
+                <!-- External server URL -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">
+                        {$language === "de"
+                            ? "Externer Crawl4AI-Server (optional)"
+                            : "External Crawl4AI Server URL (optional)"}
+                    </label>
+                    <input
+                        type="text"
+                        bind:value={scrapingConfig.crawl4ai_server_url}
+                        placeholder="http://192.168.1.100:11235"
+                        class="input input-bordered w-full max-w-lg font-mono"
+                    />
+                    <p class="text-xs text-gray-500 mt-1">
+                        {$language === "de"
+                            ? "Leer lassen für lokalen Headless-Browser. URL eintragen um einen externen Crawl4AI-Container (z.B. anderer Proxmox CT) per REST-API zu nutzen. Start: docker run -d -p 11235:11235 unclecode/crawl4ai"
+                            : "Leave empty for local headless browser. Enter URL to use an external Crawl4AI container (e.g. another Proxmox CT) via REST API. Start: docker run -d -p 11235:11235 unclecode/crawl4ai"}
+                    </p>
+                </div>
+
+                <!-- Fallback toggle -->
+                <label class="flex items-start gap-3 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        bind:checked={scrapingConfig.crawl4ai_fallback}
+                        class="checkbox checkbox-warning mt-0.5"
+                    />
+                    <span class="text-sm text-gray-700">
+                        <span class="font-semibold">
+                            {$language === "de"
+                                ? "Fallback auf requests bei Fehler"
+                                : "Fall back to requests engine on failure"}
+                        </span>
+                        <br />
+                        <span class="text-xs text-gray-500">
+                            {$language === "de"
+                                ? "Wenn Crawl4AI nicht verfügbar ist (nicht installiert, Server nicht erreichbar, Browser-Absturz), wird automatisch auf requests+BeautifulSoup umgeschaltet."
+                                : "If Crawl4AI is unavailable (not installed, server unreachable, browser crash), automatically retries with the requests+BeautifulSoup engine."}
+                        </span>
+                    </span>
+                </label>
+            </div>
+        {/if}
+
+        <button
+            on:click={saveScrapingConfig}
+            disabled={isLoading}
+            class="mt-6 btn btn-primary px-8"
+        >
+            {$language === "de" ? "Engine-Einstellungen speichern" : "Save Engine Settings"}
         </button>
     </section>
 

@@ -9,23 +9,30 @@
   let radius = 20; // Default radius in km
   let isLoading = false;
   let errorMessage = "";
+  let resultCount: number | null = null;
 
   async function search() {
     if (!address) {
-      errorMessage = "Address is required.";
+      errorMessage = "Bitte Adresse oder PLZ eingeben.";
       return;
     }
 
     isLoading = true;
     errorMessage = "";
+    resultCount = null;
 
     try {
       const geocodeUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1&countrycodes=de`;
-      const geocodeResponse = await fetch(geocodeUrl);
-      const geocodeData = await geocodeResponse.json();
+      let geocodeData: any[];
+      try {
+        const geocodeResponse = await fetch(geocodeUrl);
+        geocodeData = await geocodeResponse.json();
+      } catch {
+        throw new Error("Adresse konnte nicht aufgelöst werden (kein Internetzugang vom Browser?).");
+      }
 
       if (!geocodeData || geocodeData.length === 0) {
-        throw new Error("Could not find coordinates for the address.");
+        throw new Error(`Keine Koordinaten für „${address}" gefunden. Bitte vollständigere Adresse oder PLZ angeben.`);
       }
 
       const lat = parseFloat(geocodeData[0].lat);
@@ -33,6 +40,7 @@
 
       const searchUrl = `/api/targets/search-by-radius?lat=${lat}&lon=${lon}&radius=${radius}`;
       const nearbyTargets = await api(searchUrl);
+      resultCount = nearbyTargets.length;
       dispatch("searchcomplete", {
         targets: nearbyTargets,
         center: { lat, lon },
@@ -73,7 +81,13 @@
         }
       },
       (error) => {
-        errorMessage = "Unable to retrieve your location";
+        const isHttp =
+          typeof location !== "undefined" &&
+          location.protocol !== "https:" &&
+          location.hostname !== "localhost";
+        errorMessage = isHttp
+          ? "Standortermittlung nicht möglich: Browser erlauben GPS/Geolocation nur über HTTPS. Bitte Adresse oder PLZ manuell eingeben."
+          : `Standort konnte nicht ermittelt werden (${error.message}).`;
         isLoading = false;
       },
     );
@@ -158,6 +172,17 @@
       {/if}
     </button>
   </form>
+  {#if resultCount !== null}
+    <div class="alert {resultCount > 0 ? 'alert-success' : 'alert-warning'} mt-3 py-2 text-sm">
+      <span>
+        {#if resultCount > 0}
+          {resultCount} Ziel{resultCount === 1 ? '' : 'e'} im Umkreis von {radius} km gefunden.
+        {:else}
+          Keine Ziele im Umkreis von {radius} km gefunden. Versuche einen größeren Radius.
+        {/if}
+      </span>
+    </div>
+  {/if}
   {#if errorMessage}
     <div class="alert alert-error mt-3 py-2 text-sm">
       <span>{errorMessage}</span>
