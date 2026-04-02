@@ -5,12 +5,28 @@ Key advantages over the default engine:
 - JavaScript rendering via headless browser (handles dynamic municipality sites)
 - Fetches multiple links concurrently within a single browser session
 - Returns cleaned HTML that is compatible with the existing parser/extractor pipeline
+
+Modes:
+- Local  (server_url=None): uses AsyncWebCrawler with local Headless Chromium
+- Remote (server_url set):  POSTs to an external Crawl4AI server via REST API
+
+Fallback behaviour:
+  Connection-level errors (ImportError, requests.RequestException, etc.) are NOT
+  caught here — they propagate to routes.py which decides whether to fall back to
+  the requests engine based on the user's config.
 """
 
 import time
+import requests as _requests
+from typing import Optional
 
 from scraper import Scraper
-from scraper_lib.crawl4ai_fetcher import fetch_html_crawl4ai, fetch_many_crawl4ai
+from scraper_lib.crawl4ai_fetcher import (
+    fetch_html_crawl4ai,
+    fetch_many_crawl4ai,
+    fetch_html_crawl4ai_remote,
+    fetch_many_crawl4ai_remote,
+)
 from scraper_lib.fetcher import download_pdf_to_text
 from scraper_lib.parser import find_relevant_links, NAV_KEYWORDS
 from scraper_lib.extractor import extract_data_from_html_page, extract_data_from_pdf_text
@@ -32,14 +48,13 @@ class Crawl4AIScraper:
     get_logs = Scraper.get_logs
     clear_logs = Scraper.clear_logs
 
-    # --- Instance ---
-
     def __init__(
         self,
         keywords: list[dict],
         max_html_links: int = 15,
         max_pdf_links: int = 10,
         delay: float = 0.5,
+        server_url: Optional[str] = None,
     ):
         if not keywords:
             raise ValueError("Scraper must be initialized with a list of keywords.")
@@ -47,16 +62,38 @@ class Crawl4AIScraper:
         self.max_html_links = max_html_links
         self.max_pdf_links = max_pdf_links
         self.delay = delay
+        # Normalise: empty string → None (= use local browser)
+        self.server_url: Optional[str] = server_url.strip() if server_url else None
+
+    # ------------------------------------------------------------------
+    # Internal helpers that route between local and remote fetch
+    # ------------------------------------------------------------------
+
+    def _fetch_one(self, url: str) -> Optional[str]:
+        if self.server_url:
+            return fetch_html_crawl4ai_remote(url, self.server_url)
+        return fetch_html_crawl4ai(url)
+
+    def _fetch_many(self, urls: list[str]) -> dict[str, Optional[str]]:
+        if self.server_url:
+            return fetch_many_crawl4ai_remote(urls, self.server_url)
+        return fetch_many_crawl4ai(urls)
+
+    # ------------------------------------------------------------------
+    # Main entry point
+    # ------------------------------------------------------------------
 
     def scrape_site(self, site_name: str, site_url: str) -> list[dict]:
-        self.log(f"--- [Crawl4AI] Processing {site_name} ({site_url}) ---")
+        mode = f"remote ({self.server_url})" if self.server_url else "local"
+        self.log(f"--- [Crawl4AI/{mode}] Processing {site_name} ({site_url}) ---")
         all_data: list[dict] = []
         processed_urls: set[str] = set()
 
-        # 1. Fetch the main page with JS rendering
-        main_page_html = fetch_html_crawl4ai(site_url)
+        # 1. Fetch the main page
+        #    Connection/import errors propagate → routes.py handles fallback
+        main_page_html = self._fetch_one(site_url)
         if not main_page_html:
-            self.log(f"  [ERROR] Could not fetch main page: {site_url}")
+            self.log(f"  [WARN] No content returned for main page: {site_url}")
             return []
 
         keyword_strings = [k["word"].lower() for k in self.keywords]
@@ -65,11 +102,10 @@ class Crawl4AIScraper:
             f"  Found {len(html_links)} relevant HTML links and {len(pdf_links)} PDF links."
         )
 
-        # 2. Crawl HTML links (batch-fetch for speed, respecting max_html_links)
+        # 2. Crawl HTML links in batches of 5
         i = 0
         while i < len(html_links) and i < self.max_html_links:
-            batch_urls = []
-            # Build a batch of up to 5 uncrawled links at a time
+            batch_urls: list[str] = []
             while len(batch_urls) < 5 and i < len(html_links) and i < self.max_html_links:
                 url = html_links[i]
                 i += 1
@@ -79,8 +115,8 @@ class Crawl4AIScraper:
             if not batch_urls:
                 continue
 
-            self.log(f"  [Crawl4AI] Batch-fetching {len(batch_urls)} HTML pages…")
-            pages = fetch_many_crawl4ai(batch_urls)
+            self.log(f"  Batch-fetching {len(batch_urls)} HTML pages…")
+            pages = self._fetch_many(batch_urls)
 
             for link_url in batch_urls:
                 page_html = pages.get(link_url)
@@ -107,22 +143,17 @@ class Crawl4AIScraper:
                 all_data.extend(data)
                 processed_urls.add(link_url)
 
-            # Polite delay between batches
             time.sleep(self.delay)
 
-        # 3. Crawl PDF links (still uses requests – PDFs don't need a browser)
-        import requests
-
-        session = requests.Session()
-        session.headers.update(
-            {
-                "User-Agent": (
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/91.0.4472.124 Safari/537.36"
-                )
-            }
-        )
+        # 3. Crawl PDF links (always via requests — PDFs don't need a browser)
+        session = _requests.Session()
+        session.headers.update({
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/91.0.4472.124 Safari/537.36"
+            )
+        })
 
         for j, pdf_url in enumerate(pdf_links):
             if j >= self.max_pdf_links:

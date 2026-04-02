@@ -92,6 +92,10 @@ class ScrapingConfig(Base):
     request_delay = Column(Float, default=0.5)
     # "requests" = classic BeautifulSoup engine; "crawl4ai" = JS-rendering engine
     scraper_engine = Column(String, default="requests")
+    # Crawl4AI: optional remote server URL (e.g. http://192.168.1.100:11235); empty = local browser
+    crawl4ai_server_url = Column(String, nullable=True)
+    # If True, fall back to requests engine when Crawl4AI fails
+    crawl4ai_fallback = Column(Integer, default=1)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 

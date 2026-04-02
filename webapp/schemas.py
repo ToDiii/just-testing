@@ -139,6 +139,8 @@ class ScrapingConfigBase(BaseModel):
     max_pdf_links: int = 10
     request_delay: float = 0.5
     scraper_engine: str = "requests"  # "requests" | "crawl4ai"
+    crawl4ai_server_url: Optional[str] = None  # e.g. "http://192.168.1.100:11235"
+    crawl4ai_fallback: bool = True             # fall back to requests on crawl4ai failure
 
 
 class ScrapingConfigCreate(ScrapingConfigBase):

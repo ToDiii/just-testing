@@ -171,21 +171,35 @@ def scrape_single_target(target: models.TargetSite, db: Session) -> int:
     # Fetch global scraping config
     config = db.query(models.ScrapingConfig).first()
     engine = config.scraper_engine if config else "requests"
-    ScraperClass = Crawl4AIScraper if engine == "crawl4ai" else Scraper
+    server_url = (config.crawl4ai_server_url or "").strip() if config else ""
+    fallback_enabled = bool(config.crawl4ai_fallback) if config else True
 
-    if not config:
-        scraper_instance = ScraperClass(keywords=keyword_list)
-    else:
-        scraper_instance = ScraperClass(
-            keywords=keyword_list,
-            max_html_links=config.max_html_links,
-            max_pdf_links=config.max_pdf_links,
-            delay=config.request_delay
-        )
-    Scraper.log(f"Using scraper engine: {engine}")
+    scraper_kwargs = dict(
+        keywords=keyword_list,
+        max_html_links=config.max_html_links if config else 15,
+        max_pdf_links=config.max_pdf_links if config else 10,
+        delay=config.request_delay if config else 0.5,
+    )
 
     site_name = target.name or target.url
-    results = scraper_instance.scrape_site(site_name, target.url)
+
+    if engine == "crawl4ai":
+        mode_label = f"remote ({server_url})" if server_url else "local"
+        Scraper.log(f"Using engine: crawl4ai/{mode_label}")
+        try:
+            scraper_instance = Crawl4AIScraper(**scraper_kwargs, server_url=server_url or None)
+            results = scraper_instance.scrape_site(site_name, target.url)
+        except Exception as e:
+            Scraper.log(f"  [CRAWL4AI ERROR] {type(e).__name__}: {e}")
+            if fallback_enabled:
+                Scraper.log("  [FALLBACK] Switching to requests engine…")
+                results = Scraper(**scraper_kwargs).scrape_site(site_name, target.url)
+            else:
+                Scraper.log("  [FALLBACK DISABLED] Returning empty result for this target.")
+                results = []
+    else:
+        Scraper.log("Using engine: requests")
+        results = Scraper(**scraper_kwargs).scrape_site(site_name, target.url)
 
     new_count = 0
     new_items = []

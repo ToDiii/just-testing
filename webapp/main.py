@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 import os
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
@@ -25,6 +26,22 @@ def get_db():
     finally:
         db.close()
 
+
+def run_migrations():
+    """Add new columns to existing tables without dropping data."""
+    migrations = [
+        "ALTER TABLE scraping_configs ADD COLUMN scraper_engine TEXT DEFAULT 'requests'",
+        "ALTER TABLE scraping_configs ADD COLUMN crawl4ai_server_url TEXT",
+        "ALTER TABLE scraping_configs ADD COLUMN crawl4ai_fallback INTEGER DEFAULT 1",
+    ]
+    with engine.begin() as conn:
+        for stmt in migrations:
+            try:
+                conn.execute(text(stmt))
+            except Exception:
+                pass  # column already exists – safe to ignore
+
+
 def init_db(db: Session) -> None:
     """Initialize database with predefined keywords if they don't exist."""
     existing_keywords = {k.word for k in db.query(models.Keyword).all()}
@@ -45,6 +62,7 @@ def init_db(db: Session) -> None:
 
 @app.on_event("startup")
 def startup_populate():
+    run_migrations()
     db = SessionLocal()
     try:
         init_db(db)
@@ -58,3 +76,4 @@ if os.path.exists("dist"):
 @app.get("/{full_path:path}")
 async def catch_all(full_path: str):
     return FileResponse('dist/index.html')
+
