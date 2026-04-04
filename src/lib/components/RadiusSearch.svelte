@@ -44,6 +44,7 @@
       dispatch("searchcomplete", {
         targets: nearbyTargets,
         center: { lat, lon },
+        radiusKm: radius,
       });
     } catch (error) {
       errorMessage = (error as Error).message;
@@ -53,8 +54,19 @@
   }
 
   async function useMyLocation() {
+    // Früher Exit: kein Ladeindikator, sofortige Fehlermeldung auf HTTP
+    const isHttps =
+      typeof location !== "undefined" &&
+      (location.protocol === "https:" || location.hostname === "localhost");
+
+    if (!isHttps) {
+      errorMessage =
+        "Standortermittlung nicht möglich: Browser erlauben GPS/Geolocation nur über HTTPS. Bitte Adresse oder PLZ manuell eingeben.";
+      return;
+    }
+
     if (!navigator.geolocation) {
-      errorMessage = "Geolocation is not supported by your browser";
+      errorMessage = "Geolocation wird von diesem Browser nicht unterstützt.";
       return;
     }
 
@@ -70,9 +82,11 @@
         try {
           const searchUrl = `/api/targets/search-by-radius?lat=${lat}&lon=${lon}&radius=${radius}`;
           const nearbyTargets = await api(searchUrl);
+          resultCount = nearbyTargets.length;
           dispatch("searchcomplete", {
             targets: nearbyTargets,
             center: { lat, lon },
+            radiusKm: radius,
           });
         } catch (error) {
           errorMessage = (error as Error).message;
@@ -81,13 +95,7 @@
         }
       },
       (error) => {
-        const isHttp =
-          typeof location !== "undefined" &&
-          location.protocol !== "https:" &&
-          location.hostname !== "localhost";
-        errorMessage = isHttp
-          ? "Standortermittlung nicht möglich: Browser erlauben GPS/Geolocation nur über HTTPS. Bitte Adresse oder PLZ manuell eingeben."
-          : `Standort konnte nicht ermittelt werden (${error.message}).`;
+        errorMessage = `Standort konnte nicht ermittelt werden: ${error.message}`;
         isLoading = false;
       },
     );

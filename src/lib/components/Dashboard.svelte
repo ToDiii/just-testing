@@ -10,6 +10,7 @@
     let displayedTargets: any[] = [];
     let mapCenter: [number, number] | null = null;
     let mapBounds: [number, number][] | null = null;
+    let searchCircle: { center: { lat: number; lon: number }; radiusKm: number } | null = null;
     let isLoading = false;
     let message = "";
 
@@ -38,7 +39,16 @@
     }
 
     function handleSearchComplete(event: any) {
-        const { targets, center } = event.detail;
+        const { targets, center, radiusKm } = event.detail;
+
+        // BUG FIX: Clear selectedScrapeTargetId before updating displayedTargets.
+        // The reactive block below ($: if allTargets.length > 0 ...) would otherwise
+        // immediately override displayedTargets and mapCenter/mapBounds based on the
+        // still-selected target, discarding the search results.
+        if ($uiState.selectedScrapeTargetId) {
+            $uiState.selectedScrapeTargetId = null;
+        }
+
         displayedTargets = targets;
 
         // Calculate bounds to include all targets AND the search center
@@ -46,15 +56,18 @@
             .filter((t: any) => t.latitude != null && t.longitude != null)
             .map((t: any) => [t.latitude, t.longitude] as [number, number]);
 
-        if (center) {
-            points.push([center.lat, center.lon]);
-        }
+        if (center) points.push([center.lat, center.lon]);
 
         if (points.length > 0) {
             mapBounds = points;
+            mapCenter = null;
         } else if (center) {
             mapCenter = [center.lat, center.lon];
+            mapBounds = null;
         }
+
+        // Update search radius circle visualization
+        searchCircle = center && radiusKm ? { center, radiusKm } : null;
     }
 
     function handleFocus(event: any) {
@@ -65,9 +78,9 @@
 
     function resetView() {
         displayedTargets = allTargets;
-        mapCenter = [51.1657, 10.4515]; // Deutschland Mitte
+        searchCircle = null;
         mapBounds = null;
-        // Trigger a re-render/re-fit for the map by setting a small timeout
+        mapCenter = [51.1657, 10.4515]; // Deutschland Mitte
         setTimeout(() => {
             mapCenter = [51.1657, 10.4516]; // Tiny change to trigger reactivity
         }, 10);
@@ -209,6 +222,7 @@
                 targets={displayedTargets}
                 viewCenter={mapCenter}
                 bounds={mapBounds}
+                {searchCircle}
                 on:focus={handleFocus}
             />
         </div>
