@@ -86,8 +86,11 @@ def extract_data_from_html_page(page_url: str, html_content: str, keywords: list
             for keyword_obj in keywords:
                 keyword = keyword_obj['word'].lower()
                 if keyword in block_text.lower():
-                    snippet_max_len = 300
-                    snippet = block_text[:snippet_max_len] + ("..." if len(block_text) > snippet_max_len else "")
+                    keyword_pos = block_text.lower().find(keyword)
+                    start_pos = max(0, keyword_pos - 100)
+                    end_pos = min(len(block_text), keyword_pos + len(keyword) + 150)
+                    snippet_text = block_text[start_pos:end_pos].strip()
+                    snippet = f"[Keyword: {keyword_obj['word']}] ...{snippet_text}..."
                     if snippet not in description_snippets:
                          description_snippets.append(snippet)
                     break
@@ -157,11 +160,11 @@ def extract_data_from_pdf_text(pdf_url: str, pdf_text: str, keywords: list[dict]
                 keyword_pos = text_lower.find(keyword)
                 start_pos = max(0, keyword_pos - 150)
                 end_pos = min(len(pdf_text), keyword_pos + len(keyword) + 250)
-                snippet = pdf_text[start_pos:end_pos].replace('\n', ' ').strip()
-                snippet = "..." + re.sub(r'\s+', ' ', snippet) + "..."
+                snippet_raw = pdf_text[start_pos:end_pos].replace('\n', ' ').strip()
+                snippet = f"[Keyword: {keyword_obj['word']}] ...{re.sub(r'\s+', ' ', snippet_raw)}..."
                 if snippet not in description_snippets:
                     description_snippets.append(snippet)
-                if len(description_snippets) >= 1:
+                if len(description_snippets) >= 3:
                     break
             except Exception: pass
     description = " | ".join(description_snippets)

@@ -7,15 +7,15 @@ Dieses Dokument listet die geplanten Schritte zur Optimierung und Modernisierung
 - [x] **Scraper Refactoring**: Den `scraper.py` Code in eine saubere, klassenbasierte Struktur umwandeln.
 - [x] **Frontend Modernisierung**: Die Benutzeroberfläche mit Svelte neu aufbauen und die alten Templates ersetzen.
 - [x] **Backend Anpassung**: Das FastAPI-Backend für die neue Svelte-Anwendung anpassen.
-- [ ] **Dokumentation aktualisieren**: Die `README.md` auf den neuesten Stand bringen.
-- [ ] **Projekt aufräumen**: Veraltete Dateien (Templates, etc.) entfernen.
+- [x] **Dokumentation aktualisieren**: Die `README.md` auf den neuesten Stand bringen.
+- [x] **Projekt aufräumen**: Veraltete Dateien (Templates, etc.) entfernen.
 - [x] **Tests**: Sicherstellen, dass alle Komponenten nach den Änderungen wie erwartet funktionieren.
 
 ## Zukünftige Feature-Verbesserungen
 
-- [ ] **Fortschrittsanzeige für Scraper**: Eine visuelle Anzeige (z.B. Ladesymbol) im Frontend implementieren, die aktiv ist, während der Scraping-Vorgang läuft.
+- [x] **Fortschrittsanzeige für Scraper**: Eine visuelle Anzeige (z.B. Ladesymbol) im Frontend implementieren, die aktiv ist, während der Scraping-Vorgang läuft.
 - [x] **Interaktive Karte**: Die Kartenansicht mit OpenStreetMap (oder einer ähnlichen Bibliothek wie Leaflet.js) implementieren, um Ergebnisse geografisch darzustellen und filterbar zu machen.
-- [ ] **Keyword-Ergebnisse verbessern**: Die Darstellung der Ergebnisse verbessern, um klarer zu machen, welches Keyword in welchem Kontext gefunden wurde.
+- [x] **Keyword-Ergebnisse verbessern**: Die Darstellung der Ergebnisse verbessern, um klarer zu machen, welches Keyword in welchem Kontext gefunden wurde.
 
 ---
 *English Translation:*
