@@ -100,6 +100,31 @@ const translations: Translations = {
     'locate_me': { de: 'Meinen Standort finden', en: 'Locate me' },
     'cancel_scrape': { de: 'Abbrechen', en: 'Cancel' },
     'use_my_location': { de: 'Meinen Standort verwenden', en: 'Use my location' },
+    // View modes
+    'view_table': { de: 'Tabelle', en: 'Table' },
+    'view_cards_small': { de: 'Kleine Kacheln', en: 'Small Cards' },
+    'view_cards_large': { de: 'Große Kacheln', en: 'Large Cards' },
+    // Scraping limit
+    'max_targets_per_run': { de: 'Max. Ziele pro Durchlauf', en: 'Max Targets per Run' },
+    // RSS feed
+    'source_type': { de: 'Quelltyp', en: 'Source Type' },
+    'source_website': { de: 'Website', en: 'Website' },
+    'source_rss': { de: 'RSS/Atom Feed', en: 'RSS/Atom Feed' },
+    // KI-Analyse
+    'ai_analysis': { de: 'KI-Analyse', en: 'AI Analysis' },
+    'ai_config': { de: 'KI-Konfiguration', en: 'AI Configuration' },
+    'run_ai_analysis': { de: 'KI-Analyse starten', en: 'Run AI Analysis' },
+    'ai_analyzing': { de: 'Analyse läuft...', en: 'Analyzing...' },
+    'ai_result': { de: 'Analyse-Ergebnis', en: 'Analysis Result' },
+    'ai_provider': { de: 'Anbieter', en: 'Provider' },
+    'ai_model': { de: 'Modell', en: 'Model' },
+    'ai_api_key': { de: 'API-Schlüssel', en: 'API Key' },
+    'ai_system_prompt': { de: 'System-Prompt', en: 'System Prompt' },
+    'ai_base_url': { de: 'Basis-URL (für Custom)', en: 'Base URL (for Custom)' },
+    'ai_save_config': { de: 'KI-Einstellungen speichern', en: 'Save AI Config' },
+    'ai_enabled': { de: 'KI-Analyse aktiviert', en: 'AI Analysis enabled' },
+    'close': { de: 'Schließen', en: 'Close' },
+    'select_all': { de: 'Alle auswählen', en: 'Select all' },
 };
 
 export const t = derived(language, ($lang) => {

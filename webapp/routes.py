@@ -7,6 +7,7 @@ from . import models, schemas
 from .database import SessionLocal
 from scraper import Scraper
 from scraper_crawl4ai import Crawl4AIScraper
+from scraper_lib.feed_fetcher import fetch_feed, detect_feed_url
 from .geocoding import geocode_location
 from .utils import haversine_distance
 from .security import get_api_key
@@ -63,6 +64,12 @@ def run_background_scrape(db_session_factory, region_id: Optional[int] = None, t
             state.last_scrape_end = datetime.utcnow()
             db.commit()
             return
+
+        config = db.query(models.ScrapingConfig).first()
+        max_targets = (config.max_targets_per_run if config else 500) or 0
+        if max_targets > 0 and len(targets) > max_targets:
+            Scraper.log(f"Limiting to {max_targets}/{len(targets)} targets (max_targets_per_run).")
+            targets = targets[:max_targets]
 
         Scraper.log(f"Starting scrape for {len(targets)} targets...")
         for i, target in enumerate(targets):
@@ -122,11 +129,17 @@ def create_target(target: schemas.TargetSiteCreate, db: Session = Depends(get_db
         if coords:
             lat, lon = coords
 
+    # Auto-detect RSS feeds
+    source_type = target.source_type if hasattr(target, "source_type") else "website"
+    if source_type == "website" and detect_feed_url(target.url):
+        source_type = "rss"
+
     db_target = models.TargetSite(
         url=target.url,
         name=target.name,
         latitude=lat,
-        longitude=lon
+        longitude=lon,
+        source_type=source_type,
     )
     db.add(db_target)
     db.commit()
@@ -182,6 +195,36 @@ def scrape_single_target(target: models.TargetSite, db: Session) -> int:
     )
 
     site_name = target.name or target.url
+
+    # RSS/Atom feed — bypass scraping engines entirely
+    source_type = getattr(target, "source_type", "website") or "website"
+    if source_type == "rss":
+        Scraper.log(f"Using engine: rss (feedparser)")
+        try:
+            results = fetch_feed(target.url, keyword_list, site_name)
+            Scraper.log(f"  RSS: {len(results)} matching entries found.")
+        except Exception as e:
+            Scraper.log(f"  [RSS ERROR] {type(e).__name__}: {e}")
+            results = []
+        # Skip to dedup/save below
+        new_count = 0
+        new_items = []
+        for item in results:
+            exists = db.query(models.ScrapeResult).filter_by(url=item['url'], target_id=target.id).first()
+            if not exists:
+                db_item = models.ScrapeResult(target_id=target.id, **item)
+                db.add(db_item)
+                new_count += 1
+                new_items.append(item)
+        if new_items:
+            try:
+                send_notifications(new_items, db)
+            except Exception as e:
+                print(f"Error sending notifications: {e}")
+        target.last_scraped_at = datetime.utcnow()
+        db.add(target)
+        db.commit()
+        return new_count
 
     if engine == "crawl4ai":
         mode_label = f"remote ({server_url})" if server_url else "local"

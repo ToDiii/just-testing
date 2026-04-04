@@ -203,7 +203,7 @@
         {/if}
 
         <div
-            class="relative rounded-2xl overflow-hidden border border-gray-100 h-[400px] md:h-[500px] shadow-inner"
+            class="relative rounded-2xl overflow-hidden border border-gray-100 h-[250px] sm:h-[350px] md:h-[500px] shadow-inner"
         >
             <Map
                 targets={displayedTargets}

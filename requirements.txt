@@ -11,3 +11,5 @@ pdf2image
 unidecode
 pytest
 crawl4ai
+feedparser
+httpx

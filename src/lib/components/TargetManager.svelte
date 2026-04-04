@@ -25,6 +25,7 @@
   let newTargetName = "";
   let newTargetUrl = "";
   let newTargetRegionId: number | null = null;
+  let newTargetSourceType = "website";
   let isLoading = true;
   let errorMessage = "";
   let filterText = "";
@@ -112,11 +113,13 @@
           name: newTargetName,
           url: newTargetUrl,
           region_id: newTargetRegionId,
+          source_type: newTargetSourceType,
         }),
       });
       newTargetName = "";
       newTargetUrl = "";
       newTargetRegionId = null;
+      newTargetSourceType = "website";
       fetchTargets(); // Refresh the list
     } catch (error) {
       errorMessage = (error as Error).message;
@@ -205,15 +208,24 @@
               class="input input-bordered w-full bg-white focus:ring-2 focus:ring-indigo-200 transition-all"
             />
           </div>
-          <select
-            bind:value={newTargetRegionId}
-            class="select select-bordered w-full bg-white"
-          >
-            <option value={null}>{$t("select_region_optional")}</option>
-            {#each regions as region (region.id)}
-              <option value={region.id}>{region.name} ({region.type})</option>
-            {/each}
-          </select>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <select
+              bind:value={newTargetRegionId}
+              class="select select-bordered w-full bg-white"
+            >
+              <option value={null}>{$t("select_region_optional")}</option>
+              {#each regions as region (region.id)}
+                <option value={region.id}>{region.name} ({region.type})</option>
+              {/each}
+            </select>
+            <select
+              bind:value={newTargetSourceType}
+              class="select select-bordered w-full bg-white"
+            >
+              <option value="website">{$t("source_website")}</option>
+              <option value="rss">{$t("source_rss")}</option>
+            </select>
+          </div>
           <button
             type="submit"
             class="btn btn-primary btn-block shadow-lg shadow-indigo-100"
@@ -334,6 +346,7 @@
                 <tr class="bg-gray-50">
                   <th class="text-gray-600">{$t("name")}</th>
                   <th class="text-gray-600">{$t("url")}</th>
+                  <th class="text-gray-600">{$t("source_type")}</th>
                   <th class="text-gray-600">{$t("last_scraped")}</th>
                 </tr>
               </thead>
@@ -347,6 +360,13 @@
                       class="text-xs text-gray-500 max-w-[200px] truncate"
                       title={target.url}>{target.url}</td
                     >
+                    <td>
+                      {#if target.source_type === "rss"}
+                        <span class="badge badge-warning badge-sm font-mono">RSS</span>
+                      {:else}
+                        <span class="badge badge-ghost badge-sm font-mono">Web</span>
+                      {/if}
+                    </td>
                     <td class="text-xs font-mono text-indigo-600"
                       >{formatTimestamp(target.last_scraped_at)}</td
                     >

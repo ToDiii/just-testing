@@ -9,6 +9,7 @@
   import "./app.css";
 
   let currentView: "dashboard" | "targets" | "admin" = "dashboard";
+  let mobileMenuOpen = false;
 
   // ... (scrapeStatus logic remains same) ...
   let allTargets: any[] = [];
@@ -59,64 +60,84 @@
 
 <main class="bg-gray-100 min-h-screen font-sans">
   <header class="bg-white shadow">
-    <div class="container mx-auto px-4 py-6">
+    <div class="container mx-auto px-4 py-4">
       <div class="flex justify-between items-center">
-        <h1 class="text-3xl font-bold text-gray-800">{$t("app_title")}</h1>
-        <div class="flex items-center gap-4">
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-800">{$t("app_title")}</h1>
+        <div class="flex items-center gap-3">
           <div class="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
             <button
-              class="px-2 py-1 rounded text-xs font-bold transition-colors {$language ===
-              'de'
-                ? 'bg-white shadow text-blue-600'
-                : 'text-gray-500 hover:text-gray-800'}"
+              class="px-2 py-1 rounded text-xs font-bold transition-colors {$language === 'de' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-800'}"
               on:click={() => ($language = "de")}
-            >
-              DE
-            </button>
+            >DE</button>
             <button
-              class="px-2 py-1 rounded text-xs font-bold transition-colors {$language ===
-              'en'
-                ? 'bg-white shadow text-blue-600'
-                : 'text-gray-500 hover:text-gray-800'}"
+              class="px-2 py-1 rounded text-xs font-bold transition-colors {$language === 'en' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-800'}"
               on:click={() => ($language = "en")}
-            >
-              EN
-            </button>
+            >EN</button>
           </div>
           {#if scrapeStatus.scrape_status === "running"}
-            <div class="flex items-center text-sm text-blue-600 font-medium">
+            <div class="hidden sm:flex items-center text-sm text-blue-600 font-medium">
               <span class="loading loading-spinner loading-sm mr-2"></span>
               {$t("scraping_in_progress")}
             </div>
           {/if}
+          <!-- Hamburger button (mobile only) -->
+          <button
+            class="md:hidden btn btn-ghost btn-sm p-1"
+            on:click={() => (mobileMenuOpen = !mobileMenuOpen)}
+            aria-label="Toggle menu"
+          >
+            {#if mobileMenuOpen}
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            {:else}
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            {/if}
+          </button>
         </div>
       </div>
-      <nav class="mt-4">
+
+      <!-- Desktop nav -->
+      <nav class="hidden md:flex mt-4 gap-2">
         <button
-          class="px-4 py-2 rounded-md mr-2 {currentView === 'dashboard'
-            ? 'bg-blue-500 text-white shadow-md'
-            : 'bg-gray-200 hover:bg-gray-300 transition-colors'}"
+          class="px-4 py-2 rounded-md {currentView === 'dashboard' ? 'bg-blue-500 text-white shadow-md' : 'bg-gray-200 hover:bg-gray-300 transition-colors'}"
           on:click={() => (currentView = "dashboard")}
-        >
-          {$t("dashboard")}
-        </button>
+        >{$t("dashboard")}</button>
         <button
-          class="px-4 py-2 rounded-md mr-2 {currentView === 'targets'
-            ? 'bg-blue-500 text-white shadow-md'
-            : 'bg-gray-200 hover:bg-gray-300 transition-colors'}"
+          class="px-4 py-2 rounded-md {currentView === 'targets' ? 'bg-blue-500 text-white shadow-md' : 'bg-gray-200 hover:bg-gray-300 transition-colors'}"
           on:click={() => (currentView = "targets")}
-        >
-          {$t("manage_targets")}
-        </button>
+        >{$t("manage_targets")}</button>
         <button
-          class="px-4 py-2 rounded-md {currentView === 'admin'
-            ? 'bg-blue-500 text-white shadow-md'
-            : 'bg-gray-200 hover:bg-gray-300 transition-colors'}"
+          class="px-4 py-2 rounded-md {currentView === 'admin' ? 'bg-blue-500 text-white shadow-md' : 'bg-gray-200 hover:bg-gray-300 transition-colors'}"
           on:click={() => (currentView = "admin")}
-        >
-          {$t("admin")}
-        </button>
+        >{$t("admin")}</button>
       </nav>
+
+      <!-- Mobile dropdown nav -->
+      {#if mobileMenuOpen}
+        <nav class="md:hidden flex flex-col mt-3 gap-1 border-t pt-3">
+          <button
+            class="w-full text-left px-4 py-3 rounded-md {currentView === 'dashboard' ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'}"
+            on:click={() => { currentView = "dashboard"; mobileMenuOpen = false; }}
+          >{$t("dashboard")}</button>
+          <button
+            class="w-full text-left px-4 py-3 rounded-md {currentView === 'targets' ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'}"
+            on:click={() => { currentView = "targets"; mobileMenuOpen = false; }}
+          >{$t("manage_targets")}</button>
+          <button
+            class="w-full text-left px-4 py-3 rounded-md {currentView === 'admin' ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'}"
+            on:click={() => { currentView = "admin"; mobileMenuOpen = false; }}
+          >{$t("admin")}</button>
+          {#if scrapeStatus.scrape_status === "running"}
+            <div class="flex items-center px-4 py-2 text-sm text-blue-600 font-medium">
+              <span class="loading loading-spinner loading-sm mr-2"></span>
+              {$t("scraping_in_progress")}
+            </div>
+          {/if}
+        </nav>
+      {/if}
     </div>
   </header>
 

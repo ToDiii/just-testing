@@ -10,13 +10,15 @@ from datetime import datetime
 from . import models, schemas
 from .database import SessionLocal, engine
 from .routes import router as api_router
+from .ai_routes import ai_router
 
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Scraper Web API", docs_url="/api/docs", openapi_url="/api/openapi.json")
 
-# API router
+# API routers
 app.include_router(api_router, prefix="/api")
+app.include_router(ai_router, prefix="/api")
 
 
 def get_db():
@@ -33,6 +35,8 @@ def run_migrations():
         "ALTER TABLE scraping_configs ADD COLUMN scraper_engine TEXT DEFAULT 'requests'",
         "ALTER TABLE scraping_configs ADD COLUMN crawl4ai_server_url TEXT",
         "ALTER TABLE scraping_configs ADD COLUMN crawl4ai_fallback INTEGER DEFAULT 1",
+        "ALTER TABLE scraping_configs ADD COLUMN max_targets_per_run INTEGER DEFAULT 500",
+        "ALTER TABLE target_sites ADD COLUMN source_type TEXT DEFAULT 'website'",
     ]
     with engine.begin() as conn:
         for stmt in migrations:
