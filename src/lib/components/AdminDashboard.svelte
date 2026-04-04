@@ -2,6 +2,7 @@
     import { onMount } from "svelte";
     import { api } from "../api";
     import { t, language } from "../stores";
+    import { toast } from "../toasts";
 
     interface NotificationConfig {
         id: number;
@@ -28,7 +29,11 @@
     };
 
     let isLoading = false;
-    let message = "";
+
+    // Crawl4AI connection test
+    type TestResult = { ok: boolean; message: string; latency_ms?: number; detail?: string; response?: any } | null;
+    let crawl4aiTestResult: TestResult = null;
+    let crawl4aiTesting = false;
 
     // AI config
     let aiConfig = {
@@ -58,18 +63,31 @@
         }
     }
 
+    async function testCrawl4aiConnection() {
+        crawl4aiTesting = true;
+        crawl4aiTestResult = null;
+        try {
+            const serverUrl = scrapingConfig.crawl4ai_server_url?.trim() || "";
+            const params = serverUrl ? `?server_url=${encodeURIComponent(serverUrl)}` : "";
+            crawl4aiTestResult = await api(`/api/crawl4ai/test${params}`);
+        } catch (error: any) {
+            crawl4aiTestResult = { ok: false, message: error.message };
+        } finally {
+            crawl4aiTesting = false;
+        }
+    }
+
     async function saveScrapingConfig() {
         isLoading = true;
-        message = "";
         try {
             await api("/api/config/scraping", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(scrapingConfig),
             });
-            message = "Scraping configuration saved!";
+            toast.success($language === "de" ? "Scraping-Konfiguration gespeichert!" : "Scraping configuration saved!");
         } catch (error: any) {
-            message = "Error saving scraping config: " + error.message;
+            toast.error(($language === "de" ? "Fehler: " : "Error: ") + error.message);
         } finally {
             isLoading = false;
         }
@@ -86,8 +104,9 @@
             });
             newNotification.recipient = "";
             await loadConfigs();
+            toast.success($language === "de" ? "Benachrichtigungskanal hinzugefügt!" : "Notification channel added!");
         } catch (error: any) {
-            message = "Error adding notification: " + error.message;
+            toast.error(error.message);
         } finally {
             isLoading = false;
         }
@@ -96,12 +115,11 @@
     async function deleteNotification(id: number) {
         isLoading = true;
         try {
-            await api(`/api/notifications/config/${id}`, {
-                method: "DELETE",
-            });
+            await api(`/api/notifications/config/${id}`, { method: "DELETE" });
             await loadConfigs();
+            toast.info($language === "de" ? "Kanal gelöscht." : "Channel deleted.");
         } catch (error: any) {
-            message = "Error deleting notification: " + error.message;
+            toast.error(error.message);
         } finally {
             isLoading = false;
         }
@@ -122,16 +140,15 @@
 
     async function saveAiConfig() {
         isLoading = true;
-        message = "";
         try {
             await api("/api/ai/config", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(aiConfig),
             });
-            message = $language === "de" ? "KI-Einstellungen gespeichert!" : "AI settings saved!";
+            toast.success($language === "de" ? "KI-Einstellungen gespeichert!" : "AI settings saved!");
         } catch (error: any) {
-            message = "Error saving AI config: " + error.message;
+            toast.error(($language === "de" ? "Fehler: " : "Error: ") + error.message);
         } finally {
             isLoading = false;
         }
@@ -139,14 +156,11 @@
 
     async function testNotification(id: number) {
         isLoading = true;
-        message = "";
         try {
-            const result = await api(`/api/notifications/test/${id}`, {
-                method: "POST",
-            });
-            message = result.message || "Test notification sent!";
+            const result = await api(`/api/notifications/test/${id}`, { method: "POST" });
+            toast.success(result.message || ($language === "de" ? "Test-Benachrichtigung gesendet!" : "Test notification sent!"));
         } catch (error: any) {
-            message = "Error testing notification: " + error.message;
+            toast.error(($language === "de" ? "Fehler: " : "Error: ") + error.message);
         } finally {
             isLoading = false;
         }
@@ -155,15 +169,6 @@
 
 <div class="p-6 bg-white rounded-lg shadow-md">
     <h2 class="text-2xl font-bold mb-6">{$t("admin_dashboard")}</h2>
-
-    {#if message}
-        <div
-            class="p-4 mb-4 text-sm text-blue-700 bg-blue-100 rounded-lg"
-            role="alert"
-        >
-            {message}
-        </div>
-    {/if}
 
     <section class="mb-8 border-b pb-8">
         <h3 class="text-xl font-semibold mb-4 flex items-center">
@@ -342,13 +347,62 @@
                             ? "Externer Crawl4AI-Server (optional)"
                             : "External Crawl4AI Server URL (optional)"}
                     </label>
-                    <input
-                        type="text"
-                        bind:value={scrapingConfig.crawl4ai_server_url}
-                        placeholder="http://192.168.1.100:11235"
-                        class="input input-bordered w-full max-w-lg font-mono"
-                    />
-                    <p class="text-xs text-gray-500 mt-1">
+                    <div class="flex gap-2 items-center max-w-lg">
+                        <input
+                            type="text"
+                            bind:value={scrapingConfig.crawl4ai_server_url}
+                            placeholder="http://192.168.1.100:11235"
+                            class="input input-bordered flex-1 font-mono"
+                        />
+                        <button
+                            type="button"
+                            class="btn btn-outline btn-sm whitespace-nowrap {crawl4aiTesting ? 'loading' : ''}"
+                            on:click={testCrawl4aiConnection}
+                            disabled={crawl4aiTesting}
+                        >
+                            {#if !crawl4aiTesting}
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                            {/if}
+                            {$language === "de" ? "Testen" : "Test"}
+                        </button>
+                    </div>
+
+                    <!-- Test result -->
+                    {#if crawl4aiTestResult !== null}
+                        <div class="mt-3 p-3 rounded-lg border text-sm {crawl4aiTestResult.ok ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}">
+                            <div class="flex items-center gap-2 font-semibold {crawl4aiTestResult.ok ? 'text-green-700' : 'text-red-700'}">
+                                {#if crawl4aiTestResult.ok}
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                {:else}
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                                    </svg>
+                                {/if}
+                                {crawl4aiTestResult.message}
+                            </div>
+                            {#if crawl4aiTestResult.ok && crawl4aiTestResult.latency_ms}
+                                <p class="text-xs text-green-600 mt-1">Latenz: {crawl4aiTestResult.latency_ms} ms</p>
+                            {/if}
+                            {#if !crawl4aiTestResult.ok && crawl4aiTestResult.detail}
+                                <details class="mt-2">
+                                    <summary class="cursor-pointer text-xs text-red-500 font-mono hover:underline">Debug-Info anzeigen</summary>
+                                    <pre class="mt-2 text-xs bg-red-100 rounded p-2 overflow-auto whitespace-pre-wrap break-all">{crawl4aiTestResult.detail}</pre>
+                                </details>
+                            {/if}
+                            {#if crawl4aiTestResult.ok && crawl4aiTestResult.response}
+                                <details class="mt-2">
+                                    <summary class="cursor-pointer text-xs text-green-600 font-mono hover:underline">Server-Antwort</summary>
+                                    <pre class="mt-2 text-xs bg-green-100 rounded p-2 overflow-auto">{JSON.stringify(crawl4aiTestResult.response, null, 2)}</pre>
+                                </details>
+                            {/if}
+                        </div>
+                    {/if}
+
+                    <p class="text-xs text-gray-500 mt-2">
                         {$language === "de"
                             ? "Leer lassen für lokalen Headless-Browser. URL eintragen um einen externen Crawl4AI-Container (z.B. anderer Proxmox CT) per REST-API zu nutzen. Start: docker run -d -p 11235:11235 unclecode/crawl4ai"
                             : "Leave empty for local headless browser. Enter URL to use an external Crawl4AI container (e.g. another Proxmox CT) via REST API. Start: docker run -d -p 11235:11235 unclecode/crawl4ai"}

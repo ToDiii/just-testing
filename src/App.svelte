@@ -2,6 +2,7 @@
   import TargetManager from "./lib/components/TargetManager.svelte";
   import Dashboard from "./lib/components/Dashboard.svelte";
   import AdminDashboard from "./lib/components/AdminDashboard.svelte";
+  import ToastContainer from "./lib/components/ToastContainer.svelte";
   import { onMount } from "svelte";
   import { api } from "./lib/api";
   import { buildInfo } from "virtual:build-info";
@@ -152,8 +153,10 @@
   </div>
 
   <div
-    class="fixed bottom-2 right-2 bg-gray-800 text-white text-xs p-2 rounded shadow-lg z-50"
+    class="fixed bottom-2 right-2 bg-gray-800 text-white text-xs p-2 rounded shadow-lg z-40"
   >
     Build: {buildInfo.buildDate}
   </div>
+
+  <ToastContainer />
 </main>

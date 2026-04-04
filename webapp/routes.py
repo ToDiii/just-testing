@@ -294,6 +294,71 @@ def trigger_scrape(
     return {"message": "Scrape started in background"}
 
 
+@router.get("/crawl4ai/test")
+def test_crawl4ai_connection(server_url: str = ""):
+    """Test connectivity to an external Crawl4AI server."""
+    import requests as req_lib
+    import time
+
+    if not server_url:
+        # Test local Crawl4AI installation
+        try:
+            import crawl4ai  # noqa: F401
+            return {"ok": True, "mode": "local", "message": "crawl4ai ist lokal installiert."}
+        except ImportError:
+            return {"ok": False, "mode": "local", "message": "crawl4ai ist nicht installiert. Führe 'pip install crawl4ai' aus."}
+
+    server_url = server_url.rstrip("/")
+    start = time.monotonic()
+
+    # Try /health first, then /
+    for path in ["/health", "/"]:
+        try:
+            resp = req_lib.get(f"{server_url}{path}", timeout=8)
+            elapsed = round((time.monotonic() - start) * 1000)
+            if resp.status_code < 500:
+                try:
+                    data = resp.json()
+                except Exception:
+                    data = {}
+                return {
+                    "ok": True,
+                    "mode": "remote",
+                    "server_url": server_url,
+                    "status_code": resp.status_code,
+                    "latency_ms": elapsed,
+                    "response": data,
+                    "message": f"Verbindung erfolgreich ({elapsed} ms)",
+                }
+        except req_lib.exceptions.ConnectionError as e:
+            return {
+                "ok": False,
+                "mode": "remote",
+                "server_url": server_url,
+                "error_type": "ConnectionError",
+                "message": f"Verbindung verweigert – Server nicht erreichbar unter {server_url}",
+                "detail": str(e),
+            }
+        except req_lib.exceptions.Timeout:
+            return {
+                "ok": False,
+                "mode": "remote",
+                "server_url": server_url,
+                "error_type": "Timeout",
+                "message": f"Timeout nach 8 s – Server antwortet nicht.",
+            }
+        except Exception as e:
+            return {
+                "ok": False,
+                "mode": "remote",
+                "server_url": server_url,
+                "error_type": type(e).__name__,
+                "message": str(e),
+            }
+
+    return {"ok": False, "mode": "remote", "message": "Unbekannter Fehler"}
+
+
 @router.post("/scrape/{target_id}")
 def scrape_target_endpoint(target_id: int, db: Session = Depends(get_db)):
     target = db.get(models.TargetSite, target_id)

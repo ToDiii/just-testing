@@ -171,22 +171,56 @@
 
   // AI Analysis
   let showAiModal = false;
+  let aiModalTab: "current" | "history" = "current";
   let aiAnalysisLoading = false;
   let aiAnalysisResult = "";
   let aiAnalysisError = "";
+  let aiHistory: { id: number; created_at: string; result_text: string; result_count: number; mode: string }[] = [];
+  let aiHistoryLoading = false;
+  let analyzedResultIds = new Set<number>(); // result IDs that have been analyzed
+
+  async function fetchAiHistory() {
+    aiHistoryLoading = true;
+    try {
+      const analyses = await api("/api/ai/analyses?limit=20");
+      aiHistory = analyses;
+      // Collect all result IDs that appear in any analysis
+      const newAnalyzed = new Set<number>();
+      for (const a of analyses) {
+        try {
+          // target_ids_json stores the result_ids array
+          if (a.target_ids_json) {
+            const ids: number[] = JSON.parse(a.target_ids_json);
+            ids.forEach((id) => newAnalyzed.add(id));
+          }
+        } catch {}
+      }
+      analyzedResultIds = newAnalyzed;
+    } catch (error) {
+      console.error("Failed to fetch AI history:", error);
+    } finally {
+      aiHistoryLoading = false;
+    }
+  }
 
   async function runAiAnalysis() {
     aiAnalysisLoading = true;
     aiAnalysisResult = "";
     aiAnalysisError = "";
+    aiModalTab = "current";
     showAiModal = true;
+    const ids = Array.from(selectedIds);
     try {
       const res = await api("/api/ai/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ result_ids: Array.from(selectedIds), mode: "summary" }),
+        body: JSON.stringify({ result_ids: ids, mode: "summary" }),
       });
       aiAnalysisResult = res.result_text || "";
+      // Mark these IDs as analyzed and refresh history
+      ids.forEach((id) => analyzedResultIds.add(id));
+      analyzedResultIds = analyzedResultIds; // trigger reactivity
+      fetchAiHistory();
     } catch (error) {
       aiAnalysisError = (error as Error).message;
     } finally {
@@ -326,6 +360,7 @@
     fetchRegions();
     fetchTargets();
     fetchStatus();
+    fetchAiHistory();
 
     // Check status periodically
     const statusInterval = setInterval(fetchStatus, 3000);
@@ -733,9 +768,14 @@
                   <input type="checkbox" class="checkbox checkbox-sm" checked={selectedIds.has(result.id)} on:change={() => toggleSelect(result.id)} />
                 </td>
                 <td class="max-w-md">
-                  <a href={result.url} target="_blank" class="text-blue-600 hover:text-blue-800 font-bold decoration-blue-200 underline underline-offset-4 decoration-2">
-                    {result.title}
-                  </a>
+                  <div class="flex items-start gap-2">
+                    <a href={result.url} target="_blank" class="text-blue-600 hover:text-blue-800 font-bold decoration-blue-200 underline underline-offset-4 decoration-2">
+                      {result.title}
+                    </a>
+                    {#if analyzedResultIds.has(result.id)}
+                      <span class="badge badge-xs bg-accent text-accent-content font-bold flex-shrink-0 mt-0.5" title="KI-Analyse durchgeführt">KI</span>
+                    {/if}
+                  </div>
                 </td>
                 <td><span class="badge badge-ghost font-mono text-xs">{result.source}</span></td>
                 <td class="text-gray-600 italic">{result.publication_date}</td>
@@ -752,9 +792,14 @@
             <div class="bg-white border rounded-xl p-3 flex flex-col gap-2 hover:shadow-md transition-shadow {selectedIds.has(result.id) ? 'ring-2 ring-indigo-400' : ''}">
               <div class="flex items-start gap-2">
                 <input type="checkbox" class="checkbox checkbox-xs mt-0.5 flex-shrink-0" checked={selectedIds.has(result.id)} on:change={() => toggleSelect(result.id)} />
-                <a href={result.url} target="_blank" class="text-blue-600 hover:text-blue-800 font-semibold text-sm leading-tight line-clamp-3">
-                  {result.title}
-                </a>
+                <div class="flex-1 min-w-0">
+                  <a href={result.url} target="_blank" class="text-blue-600 hover:text-blue-800 font-semibold text-sm leading-tight line-clamp-3">
+                    {result.title}
+                  </a>
+                </div>
+                {#if analyzedResultIds.has(result.id)}
+                  <span class="badge badge-xs bg-accent text-accent-content font-bold flex-shrink-0" title="KI-Analyse durchgeführt">KI</span>
+                {/if}
               </div>
               <div class="flex justify-between items-center mt-auto">
                 <span class="badge badge-ghost badge-xs font-mono truncate max-w-[100px]">{result.source}</span>
@@ -772,9 +817,14 @@
               <div class="flex items-start gap-3">
                 <input type="checkbox" class="checkbox checkbox-sm mt-0.5 flex-shrink-0" checked={selectedIds.has(result.id)} on:change={() => toggleSelect(result.id)} />
                 <div class="flex flex-col gap-1 flex-1 min-w-0">
-                  <a href={result.url} target="_blank" class="text-blue-600 hover:text-blue-800 font-bold text-base leading-snug">
-                    {result.title}
-                  </a>
+                  <div class="flex items-start gap-2">
+                    <a href={result.url} target="_blank" class="text-blue-600 hover:text-blue-800 font-bold text-base leading-snug flex-1">
+                      {result.title}
+                    </a>
+                    {#if analyzedResultIds.has(result.id)}
+                      <span class="badge badge-sm bg-accent text-accent-content font-bold flex-shrink-0" title="KI-Analyse durchgeführt">KI</span>
+                    {/if}
+                  </div>
                   {#if result.description}
                     <p class="text-gray-600 text-sm leading-relaxed line-clamp-2">
                       {result.description.slice(0, 150)}{result.description.length > 150 ? "…" : ""}
@@ -801,21 +851,94 @@
 <!-- AI Analysis Modal -->
 {#if showAiModal}
   <div class="modal modal-open">
-    <div class="modal-box max-w-3xl">
-      <h3 class="font-bold text-lg mb-4">{$t("ai_result")}</h3>
-      {#if aiAnalysisLoading}
-        <div class="flex flex-col items-center gap-4 py-8">
-          <span class="loading loading-spinner loading-lg text-accent"></span>
-          <p class="text-gray-500">{$t("ai_analyzing")}</p>
-        </div>
-      {:else if aiAnalysisError}
-        <div class="alert alert-error">
-          <span>{aiAnalysisError}</span>
-        </div>
-      {:else}
-        <pre class="bg-gray-50 rounded-lg p-4 text-sm whitespace-pre-wrap overflow-auto max-h-96">{aiAnalysisResult}</pre>
+    <div class="modal-box max-w-3xl max-h-[85vh] flex flex-col">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-bold text-lg">{$t("ai_analysis")}</h3>
+        <button class="btn btn-ghost btn-sm btn-circle" on:click={() => (showAiModal = false)}>✕</button>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs tabs-bordered mb-4">
+        <button
+          class="tab {aiModalTab === 'current' ? 'tab-active' : ''}"
+          on:click={() => (aiModalTab = "current")}
+        >
+          Aktuelle Analyse
+          {#if aiAnalysisLoading}
+            <span class="loading loading-spinner loading-xs ml-2"></span>
+          {/if}
+        </button>
+        <button
+          class="tab {aiModalTab === 'history' ? 'tab-active' : ''}"
+          on:click={() => { aiModalTab = "history"; fetchAiHistory(); }}
+        >
+          Verlauf
+          {#if aiHistory.length > 0}
+            <span class="badge badge-sm ml-2">{aiHistory.length}</span>
+          {/if}
+        </button>
+      </div>
+
+      <!-- Current analysis -->
+      {#if aiModalTab === "current"}
+        {#if aiAnalysisLoading}
+          <div class="flex flex-col items-center gap-4 py-8 flex-1">
+            <span class="loading loading-spinner loading-lg text-accent"></span>
+            <p class="text-gray-500">{$t("ai_analyzing")}</p>
+          </div>
+        {:else if aiAnalysisError}
+          <div class="alert alert-error">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+            <div>
+              <p class="font-bold">Fehler bei der KI-Analyse</p>
+              <p class="text-sm">{aiAnalysisError}</p>
+              <p class="text-xs mt-1 opacity-70">Bitte prüfe die KI-Einstellungen im Admin-Bereich.</p>
+            </div>
+          </div>
+        {:else if aiAnalysisResult}
+          <div class="overflow-auto flex-1">
+            <pre class="bg-gray-50 rounded-lg p-4 text-sm whitespace-pre-wrap leading-relaxed">{aiAnalysisResult}</pre>
+          </div>
+        {:else}
+          <div class="text-center py-12 text-gray-400">
+            <p>Noch keine Analyse gestartet.</p>
+            <p class="text-sm mt-1">Ergebnisse auswählen und "KI-Analyse starten" klicken.</p>
+          </div>
+        {/if}
+
+      <!-- History -->
+      {:else if aiModalTab === "history"}
+        {#if aiHistoryLoading}
+          <div class="flex justify-center py-8">
+            <span class="loading loading-spinner text-accent"></span>
+          </div>
+        {:else if aiHistory.length === 0}
+          <div class="text-center py-12 text-gray-400">
+            <p>Noch keine gespeicherten Analysen.</p>
+          </div>
+        {:else}
+          <div class="space-y-4 overflow-auto flex-1">
+            {#each aiHistory as entry}
+              <div class="border rounded-xl overflow-hidden">
+                <div class="flex items-center justify-between bg-gray-50 px-4 py-2 border-b">
+                  <div class="flex items-center gap-3">
+                    <span class="badge badge-sm bg-accent text-accent-content font-bold">KI</span>
+                    <span class="text-xs text-gray-500 font-mono">
+                      {new Date(entry.created_at).toLocaleString("de-DE")}
+                    </span>
+                    <span class="text-xs text-gray-400">{entry.result_count} Ergebnisse · {entry.mode}</span>
+                  </div>
+                </div>
+                <pre class="p-4 text-sm whitespace-pre-wrap bg-white leading-relaxed max-h-48 overflow-auto">{entry.result_text}</pre>
+              </div>
+            {/each}
+          </div>
+        {/if}
       {/if}
-      <div class="modal-action">
+
+      <div class="modal-action mt-4 pt-3 border-t">
         <button class="btn" on:click={() => (showAiModal = false)}>{$t("close")}</button>
       </div>
     </div>
