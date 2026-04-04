@@ -10,7 +10,7 @@
   export let bounds: [number, number][] | null = null;
   export let searchCircle: { center: { lat: number; lon: number }; radiusKm: number } | null = null;
 
-  let map: L.Map;
+  let getLeafletMap: (() => L.Map | undefined) | undefined;
   let L: any;
   let circleLayer: any = null;
   let locateError = "";
@@ -56,7 +56,7 @@
     navigator.geolocation.getCurrentPosition(
       (position) => {
         userLocation = [position.coords.latitude, position.coords.longitude];
-        if (map) map.setView(userLocation, 13);
+        getLeafletMap?.()?.setView(userLocation, 13);
       },
       (error) => {
         locateError = `Standort konnte nicht ermittelt werden: ${error.message}`;
@@ -65,22 +65,26 @@
   }
 
   // Fit bounds / center map
-  $: if (map && bounds && bounds.length > 0) {
-    map.fitBounds(bounds, { padding: [50, 50] });
+  $: if (bounds && bounds.length > 0) {
+    getLeafletMap?.()?.fitBounds(bounds, { padding: [50, 50] });
   }
 
-  $: if (map && viewCenter) {
-    const isGermanyCenter = Math.abs(viewCenter[0] - 51.1657) < 0.01;
-    map.setView(viewCenter, isGermanyCenter ? 6 : 13);
+  $: if (viewCenter) {
+    const lmap = getLeafletMap?.();
+    if (lmap) {
+      const isGermanyCenter = Math.abs(viewCenter[0] - 51.1657) < 0.01;
+      lmap.setView(viewCenter, isGermanyCenter ? 6 : 13);
+    }
   }
 
   // Draw / update search radius circle
-  $: if (map && L) {
+  $: {
     if (circleLayer) {
       circleLayer.remove();
       circleLayer = null;
     }
-    if (searchCircle) {
+    const lmap = getLeafletMap?.();
+    if (lmap && L && searchCircle) {
       circleLayer = L.circle(
         [searchCircle.center.lat, searchCircle.center.lon],
         {
@@ -91,7 +95,7 @@
           weight: 2,
           dashArray: "8, 4",
         },
-      ).addTo(map);
+      ).addTo(lmap);
     }
   }
 </script>
@@ -132,7 +136,7 @@
   {/if}
 
   {#if L}
-    <LeafletMap options={mapOptions} bind:map>
+    <LeafletMap options={mapOptions} bind:getMap={getLeafletMap}>
       <TileLayer
         url={`https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png`}
         options={{ attribution: `&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors` }}
