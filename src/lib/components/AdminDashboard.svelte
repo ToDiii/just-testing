@@ -17,6 +17,7 @@
         scraper_engine: "requests",
         crawl4ai_server_url: "",
         crawl4ai_fallback: true,
+        max_targets_per_run: 500,
     };
 
     let notificationConfigs: NotificationConfig[] = [];
@@ -29,8 +30,20 @@
     let isLoading = false;
     let message = "";
 
+    // AI config
+    let aiConfig = {
+        provider: "openrouter",
+        api_key: "",
+        base_url: "",
+        model_name: "openai/gpt-4o-mini",
+        system_prompt: "",
+        enabled: true,
+    };
+    let aiConfigLoaded = false;
+
     onMount(async () => {
         await loadConfigs();
+        await loadAiConfig();
     });
 
     async function loadConfigs() {
@@ -94,6 +107,36 @@
         }
     }
 
+    async function loadAiConfig() {
+        try {
+            const cfg = await api("/api/ai/config");
+            if (cfg) {
+                aiConfig = { ...aiConfig, ...cfg };
+            }
+            aiConfigLoaded = true;
+        } catch (error: any) {
+            console.error("Error loading AI config:", error);
+            aiConfigLoaded = true;
+        }
+    }
+
+    async function saveAiConfig() {
+        isLoading = true;
+        message = "";
+        try {
+            await api("/api/ai/config", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(aiConfig),
+            });
+            message = $language === "de" ? "KI-Einstellungen gespeichert!" : "AI settings saved!";
+        } catch (error: any) {
+            message = "Error saving AI config: " + error.message;
+        } finally {
+            isLoading = false;
+        }
+    }
+
     async function testNotification(id: number) {
         isLoading = true;
         message = "";
@@ -140,7 +183,7 @@
             </svg>
             {$t("scraping_limits")}
         </h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div class="space-y-1">
                 <label class="block text-sm font-semibold text-gray-700"
                     >{$t("max_html_links")}</label
@@ -185,6 +228,22 @@
                     {$language === "de"
                         ? "Wartezeit zwischen Abfragen. Schont die Server und vermeidet Blockierungen."
                         : "Wait time between requests. Keeps the scraper polite and avoids getting blocked."}
+                </p>
+            </div>
+            <div class="space-y-1">
+                <label class="block text-sm font-semibold text-gray-700"
+                    >{$t("max_targets_per_run")}</label
+                >
+                <input
+                    type="number"
+                    min="0"
+                    bind:value={scrapingConfig.max_targets_per_run}
+                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                />
+                <p class="text-xs text-gray-500 mt-2 italic">
+                    {$language === "de"
+                        ? "Maximale Anzahl Ziele pro Scrape-Durchlauf. 0 = unbegrenzt. Verhindert übermäßigen Ressourcenverbrauch."
+                        : "Maximum targets per scrape run. 0 = unlimited. Prevents excessive resource usage."}
                 </p>
             </div>
         </div>
@@ -327,6 +386,82 @@
         >
             {$language === "de" ? "Engine-Einstellungen speichern" : "Save Engine Settings"}
         </button>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ KI-Analyse ══ -->
+    <section class="mb-8 border-b pb-8">
+        <h3 class="text-xl font-semibold mb-4 flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+            {$t("ai_config")}
+        </h3>
+
+        <p class="text-sm text-gray-500 mb-5">
+            {$language === "de"
+                ? "Konfiguriere einen KI-Anbieter (OpenRouter, OpenAI, Anthropic oder Custom), um Scraping-Ergebnisse automatisch analysieren und zusammenfassen zu lassen."
+                : "Configure an AI provider (OpenRouter, OpenAI, Anthropic or Custom) to automatically analyze and summarize scraping results."}
+        </p>
+
+        {#if aiConfigLoaded}
+            <div class="space-y-5">
+                <!-- Enable toggle -->
+                <label class="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" bind:checked={aiConfig.enabled} class="checkbox checkbox-primary" />
+                    <span class="font-semibold text-gray-800">{$t("ai_enabled")}</span>
+                </label>
+
+                <!-- Provider -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {#each ["openrouter", "openai", "anthropic", "custom"] as p}
+                        <label class="flex items-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition-colors {aiConfig.provider === p ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 hover:border-gray-300'}">
+                            <input type="radio" bind:group={aiConfig.provider} value={p} class="radio radio-primary radio-sm" />
+                            <span class="font-medium text-sm capitalize">{p}</span>
+                        </label>
+                    {/each}
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- API Key -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">{$t("ai_api_key")}</label>
+                        <input type="password" bind:value={aiConfig.api_key} placeholder="sk-..." class="input input-bordered w-full font-mono" autocomplete="off" />
+                    </div>
+                    <!-- Model -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">{$t("ai_model")}</label>
+                        <input type="text" bind:value={aiConfig.model_name} placeholder="openai/gpt-4o-mini" class="input input-bordered w-full font-mono" />
+                        <p class="text-xs text-gray-400 mt-1">{$language === "de" ? "OpenRouter: z.B. openai/gpt-4o-mini, anthropic/claude-3-haiku" : "OpenRouter: e.g. openai/gpt-4o-mini, anthropic/claude-3-haiku"}</p>
+                    </div>
+                </div>
+
+                {#if aiConfig.provider === "custom"}
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">{$t("ai_base_url")}</label>
+                        <input type="text" bind:value={aiConfig.base_url} placeholder="https://my-api.example.com/v1" class="input input-bordered w-full font-mono" />
+                    </div>
+                {/if}
+
+                <!-- System prompt -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">{$t("ai_system_prompt")}</label>
+                    <textarea
+                        bind:value={aiConfig.system_prompt}
+                        rows="4"
+                        placeholder={$language === "de" ? "Leer lassen für Standard-Prompt (Bauland/Gemeinde-Fokus)" : "Leave empty for default prompt (Bauland/municipality focus)"}
+                        class="textarea textarea-bordered w-full font-mono text-sm"
+                    ></textarea>
+                </div>
+
+                <button on:click={saveAiConfig} disabled={isLoading} class="btn btn-primary px-8">
+                    {$t("ai_save_config")}
+                </button>
+            </div>
+        {:else}
+            <div class="flex justify-center p-8">
+                <span class="loading loading-spinner text-emerald-600"></span>
+            </div>
+        {/if}
     </section>
 
     <section>

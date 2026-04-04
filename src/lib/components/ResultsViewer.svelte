@@ -9,6 +9,16 @@
     fetchResults();
   }
 
+  type ViewMode = "table" | "cards-small" | "cards-large";
+  let viewMode: ViewMode = (typeof localStorage !== "undefined"
+    ? (localStorage.getItem("resultsViewMode") as ViewMode) || "table"
+    : "table");
+
+  function setViewMode(mode: ViewMode) {
+    viewMode = mode;
+    localStorage.setItem("resultsViewMode", mode);
+  }
+
   // ... types ...
 
   type ScrapeResult = {
@@ -156,6 +166,31 @@
       fetchResults(); // Refresh list
     } catch (error) {
       errorMessage = (error as Error).message;
+    }
+  }
+
+  // AI Analysis
+  let showAiModal = false;
+  let aiAnalysisLoading = false;
+  let aiAnalysisResult = "";
+  let aiAnalysisError = "";
+
+  async function runAiAnalysis() {
+    aiAnalysisLoading = true;
+    aiAnalysisResult = "";
+    aiAnalysisError = "";
+    showAiModal = true;
+    try {
+      const res = await api("/api/ai/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ result_ids: Array.from(selectedIds), mode: "summary" }),
+      });
+      aiAnalysisResult = res.result_text || "";
+    } catch (error) {
+      aiAnalysisError = (error as Error).message;
+    } finally {
+      aiAnalysisLoading = false;
     }
   }
 
@@ -534,8 +569,8 @@
     </div>
   {/if}
 
-  <!-- Results Table -->
-  <div class="overflow-x-auto">
+  <!-- Results Section -->
+  <div class="overflow-x-auto w-full">
     {#if isLoading}
       <div class="flex justify-center p-8">
         <span class="loading loading-dots loading-lg text-indigo-600"></span>
@@ -550,8 +585,9 @@
         <p class="text-gray-500 font-medium">{$t("no_results_found")}</p>
       </div>
     {:else}
-      <div class="flex justify-between items-center mb-4">
-        <div class="flex items-center gap-4">
+      <!-- Toolbar: select-all, delete, AI, view-mode toggle -->
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-4">
+        <div class="flex items-center gap-4 flex-wrap">
           <label class="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
@@ -570,169 +606,222 @@
               class="btn btn-error btn-sm animate-in fade-in zoom-in duration-200"
               on:click={deleteSelected}
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-4 w-4 mr-1"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                />
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
               Löschen ({selectedIds.size})
             </button>
+            <button
+              class="btn btn-accent btn-sm animate-in fade-in zoom-in duration-200"
+              on:click={runAiAnalysis}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+              {$t("ai_analysis")} ({selectedIds.size})
+            </button>
           {/if}
+        </div>
+
+        <!-- View mode toggle -->
+        <div class="join border border-gray-200 rounded-lg">
+          <button
+            class="join-item btn btn-sm {viewMode === 'table' ? 'btn-primary' : 'btn-ghost'}"
+            title={$t("view_table")}
+            on:click={() => setViewMode("table")}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M3 6h18M3 18h18" />
+            </svg>
+          </button>
+          <button
+            class="join-item btn btn-sm {viewMode === 'cards-small' ? 'btn-primary' : 'btn-ghost'}"
+            title={$t("view_cards_small")}
+            on:click={() => setViewMode("cards-small")}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+          </button>
+          <button
+            class="join-item btn btn-sm {viewMode === 'cards-large' ? 'btn-primary' : 'btn-ghost'}"
+            title={$t("view_cards_large")}
+            on:click={() => setViewMode("cards-large")}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+          </button>
         </div>
       </div>
 
-      <table class="table w-full">
-        <thead>
-          <tr class="bg-gray-100 border-b-2 border-indigo-100">
-            <th class="w-12"></th>
-            <th class="text-indigo-900 group">
-              <div class="flex items-center justify-between">
-                <span>{$t("title")}</span>
-                <button
-                  on:click={() => (showFilterRow = !showFilterRow)}
-                  class="btn btn-ghost btn-xs opacity-50 group-hover:opacity-100"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="h-3 w-3"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
+      <!-- TABLE VIEW -->
+      {#if viewMode === "table"}
+        <table class="table w-full">
+          <thead>
+            <tr class="bg-gray-100 border-b-2 border-indigo-100">
+              <th class="w-12"></th>
+              <th class="text-indigo-900 group">
+                <div class="flex items-center justify-between">
+                  <span>{$t("title")}</span>
+                  <button
+                    on:click={() => (showFilterRow = !showFilterRow)}
+                    class="btn btn-ghost btn-xs opacity-50 group-hover:opacity-100"
                   >
-                    <path
-                      fill-rule="evenodd"
-                      d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </th>
-            <th class="text-indigo-900">{$t("source")}</th>
-            <th class="text-indigo-900">{$t("publication_date")}</th>
-            <th class="text-indigo-900">{$t("scraped_at")}</th>
-          </tr>
-          {#if showFilterRow}
-            <tr class="bg-indigo-50/30 transition-all duration-300">
-              <td></td>
-              <td class="p-2">
-                <div class="flex gap-1 overflow-hidden">
-                  <select
-                    bind:value={columnFilters.title.operator}
-                    class="select select-bordered select-xs bg-white text-[10px] w-20"
-                  >
-                    {#each textOperators as op}
-                      <option value={op}>{op.replace("_", " ")}</option>
-                    {/each}
-                  </select>
-                  <input
-                    type="text"
-                    bind:value={columnFilters.title.value}
-                    placeholder="Filter..."
-                    class="input input-bordered input-xs flex-1 bg-white"
-                  />
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd" />
+                    </svg>
+                  </button>
                 </div>
-              </td>
-              <td class="p-2">
-                <select
-                  bind:value={columnFilters.source.value}
-                  class="select select-bordered select-xs w-full bg-white"
-                >
-                  <option value="">All</option>
-                  {#each uniqueSources as src}
-                    <option value={src}>{src}</option>
-                  {/each}
-                </select>
-              </td>
-              <td class="p-2">
-                <div class="flex gap-1">
-                  <select
-                    bind:value={columnFilters.publication_date.operator}
-                    class="select select-bordered select-xs bg-white text-[10px] w-20"
-                  >
-                    {#each dateOperators as op}
-                      <option value={op}>{op}</option>
-                    {/each}
-                  </select>
-                  {#if columnFilters.publication_date.operator !== "all"}
-                    <input
-                      type="date"
-                      bind:value={columnFilters.publication_date.value}
-                      class="input input-bordered input-xs flex-1 bg-white animate-in slide-in-from-left-2"
-                    />
-                  {/if}
-                </div>
-              </td>
-              <td class="p-2">
-                <div class="flex gap-1">
-                  <select
-                    bind:value={columnFilters.scraped_at.operator}
-                    class="select select-bordered select-xs bg-white text-[10px] w-20"
-                  >
-                    {#each dateOperators as op}
-                      <option value={op}>{op}</option>
-                    {/each}
-                  </select>
-                  {#if columnFilters.scraped_at.operator !== "all"}
-                    <input
-                      type="date"
-                      bind:value={columnFilters.scraped_at.value}
-                      class="input input-bordered input-xs flex-1 bg-white animate-in slide-in-from-left-2"
-                    />
-                  {/if}
-                </div>
-              </td>
+              </th>
+              <th class="text-indigo-900">{$t("source")}</th>
+              <th class="text-indigo-900">{$t("publication_date")}</th>
+              <th class="text-indigo-900">{$t("scraped_at")}</th>
             </tr>
-          {/if}
-        </thead>
-        <tbody>
+            {#if showFilterRow}
+              <tr class="bg-indigo-50/30 transition-all duration-300">
+                <td></td>
+                <td class="p-2">
+                  <div class="flex gap-1 overflow-hidden">
+                    <select bind:value={columnFilters.title.operator} class="select select-bordered select-xs bg-white text-[10px] w-20">
+                      {#each textOperators as op}
+                        <option value={op}>{op.replace("_", " ")}</option>
+                      {/each}
+                    </select>
+                    <input type="text" bind:value={columnFilters.title.value} placeholder="Filter..." class="input input-bordered input-xs flex-1 bg-white" />
+                  </div>
+                </td>
+                <td class="p-2">
+                  <select bind:value={columnFilters.source.value} class="select select-bordered select-xs w-full bg-white">
+                    <option value="">All</option>
+                    {#each uniqueSources as src}
+                      <option value={src}>{src}</option>
+                    {/each}
+                  </select>
+                </td>
+                <td class="p-2">
+                  <div class="flex gap-1">
+                    <select bind:value={columnFilters.publication_date.operator} class="select select-bordered select-xs bg-white text-[10px] w-20">
+                      {#each dateOperators as op}
+                        <option value={op}>{op}</option>
+                      {/each}
+                    </select>
+                    {#if columnFilters.publication_date.operator !== "all"}
+                      <input type="date" bind:value={columnFilters.publication_date.value} class="input input-bordered input-xs flex-1 bg-white animate-in slide-in-from-left-2" />
+                    {/if}
+                  </div>
+                </td>
+                <td class="p-2">
+                  <div class="flex gap-1">
+                    <select bind:value={columnFilters.scraped_at.operator} class="select select-bordered select-xs bg-white text-[10px] w-20">
+                      {#each dateOperators as op}
+                        <option value={op}>{op}</option>
+                      {/each}
+                    </select>
+                    {#if columnFilters.scraped_at.operator !== "all"}
+                      <input type="date" bind:value={columnFilters.scraped_at.value} class="input input-bordered input-xs flex-1 bg-white animate-in slide-in-from-left-2" />
+                    {/if}
+                  </div>
+                </td>
+              </tr>
+            {/if}
+          </thead>
+          <tbody>
+            {#each filteredResults as result (result.id)}
+              <tr class="hover transition-colors {selectedIds.has(result.id) ? 'bg-indigo-50/50' : ''}">
+                <td>
+                  <input type="checkbox" class="checkbox checkbox-sm" checked={selectedIds.has(result.id)} on:change={() => toggleSelect(result.id)} />
+                </td>
+                <td class="max-w-md">
+                  <a href={result.url} target="_blank" class="text-blue-600 hover:text-blue-800 font-bold decoration-blue-200 underline underline-offset-4 decoration-2">
+                    {result.title}
+                  </a>
+                </td>
+                <td><span class="badge badge-ghost font-mono text-xs">{result.source}</span></td>
+                <td class="text-gray-600 italic">{result.publication_date}</td>
+                <td class="text-gray-500 text-xs">{new Date(result.scraped_at).toLocaleString()}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+
+      <!-- CARDS SMALL VIEW -->
+      {:else if viewMode === "cards-small"}
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {#each filteredResults as result (result.id)}
-            <tr
-              class="hover transition-colors {selectedIds.has(result.id)
-                ? 'bg-indigo-50/50'
-                : ''}"
-            >
-              <td>
-                <input
-                  type="checkbox"
-                  class="checkbox checkbox-sm"
-                  checked={selectedIds.has(result.id)}
-                  on:change={() => toggleSelect(result.id)}
-                />
-              </td>
-              <td class="max-w-md">
-                <a
-                  href={result.url}
-                  target="_blank"
-                  class="text-blue-600 hover:text-blue-800 font-bold decoration-blue-200 underline underline-offset-4 decoration-2"
-                >
+            <div class="bg-white border rounded-xl p-3 flex flex-col gap-2 hover:shadow-md transition-shadow {selectedIds.has(result.id) ? 'ring-2 ring-indigo-400' : ''}">
+              <div class="flex items-start gap-2">
+                <input type="checkbox" class="checkbox checkbox-xs mt-0.5 flex-shrink-0" checked={selectedIds.has(result.id)} on:change={() => toggleSelect(result.id)} />
+                <a href={result.url} target="_blank" class="text-blue-600 hover:text-blue-800 font-semibold text-sm leading-tight line-clamp-3">
                   {result.title}
                 </a>
-              </td>
-              <td
-                ><span class="badge badge-ghost font-mono text-xs"
-                  >{result.source}</span
-                ></td
-              >
-              <td class="text-gray-600 italic">{result.publication_date}</td>
-              <td class="text-gray-500 text-xs"
-                >{new Date(result.scraped_at).toLocaleString()}</td
-              >
-            </tr>
+              </div>
+              <div class="flex justify-between items-center mt-auto">
+                <span class="badge badge-ghost badge-xs font-mono truncate max-w-[100px]">{result.source}</span>
+                <span class="text-xs text-gray-400">{result.publication_date || "—"}</span>
+              </div>
+            </div>
           {/each}
-        </tbody>
-      </table>
+        </div>
+
+      <!-- CARDS LARGE VIEW -->
+      {:else if viewMode === "cards-large"}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {#each filteredResults as result (result.id)}
+            <div class="bg-white border rounded-xl p-4 flex flex-col gap-3 hover:shadow-md transition-shadow {selectedIds.has(result.id) ? 'ring-2 ring-indigo-400' : ''}">
+              <div class="flex items-start gap-3">
+                <input type="checkbox" class="checkbox checkbox-sm mt-0.5 flex-shrink-0" checked={selectedIds.has(result.id)} on:change={() => toggleSelect(result.id)} />
+                <div class="flex flex-col gap-1 flex-1 min-w-0">
+                  <a href={result.url} target="_blank" class="text-blue-600 hover:text-blue-800 font-bold text-base leading-snug">
+                    {result.title}
+                  </a>
+                  {#if result.description}
+                    <p class="text-gray-600 text-sm leading-relaxed line-clamp-2">
+                      {result.description.slice(0, 150)}{result.description.length > 150 ? "…" : ""}
+                    </p>
+                  {/if}
+                </div>
+              </div>
+              <div class="flex justify-between items-center border-t pt-2">
+                <span class="badge badge-ghost font-mono text-xs">{result.source}</span>
+                <div class="flex gap-3 text-xs text-gray-400">
+                  <span>{result.publication_date || "—"}</span>
+                  <span>{new Date(result.scraped_at).toLocaleDateString()}</span>
+                </div>
+                <a href={result.url} target="_blank" class="btn btn-xs btn-outline btn-primary">Öffnen</a>
+              </div>
+            </div>
+          {/each}
+        </div>
+      {/if}
     {/if}
   </div>
 </div>
+
+<!-- AI Analysis Modal -->
+{#if showAiModal}
+  <div class="modal modal-open">
+    <div class="modal-box max-w-3xl">
+      <h3 class="font-bold text-lg mb-4">{$t("ai_result")}</h3>
+      {#if aiAnalysisLoading}
+        <div class="flex flex-col items-center gap-4 py-8">
+          <span class="loading loading-spinner loading-lg text-accent"></span>
+          <p class="text-gray-500">{$t("ai_analyzing")}</p>
+        </div>
+      {:else if aiAnalysisError}
+        <div class="alert alert-error">
+          <span>{aiAnalysisError}</span>
+        </div>
+      {:else}
+        <pre class="bg-gray-50 rounded-lg p-4 text-sm whitespace-pre-wrap overflow-auto max-h-96">{aiAnalysisResult}</pre>
+      {/if}
+      <div class="modal-action">
+        <button class="btn" on:click={() => (showAiModal = false)}>{$t("close")}</button>
+      </div>
+    </div>
+    <div class="modal-backdrop" on:click={() => (showAiModal = false)}></div>
+  </div>
+{/if}
 
 <style>
   .custom-scrollbar::-webkit-scrollbar {

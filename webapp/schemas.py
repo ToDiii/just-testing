@@ -7,6 +7,7 @@ class TargetSiteBase(BaseModel):
     url: str
     name: Optional[str] = None
     region_id: Optional[int] = None
+    source_type: str = "website"  # "website" | "rss"
 
 
 class TargetSiteCreate(TargetSiteBase):
@@ -141,6 +142,7 @@ class ScrapingConfigBase(BaseModel):
     scraper_engine: str = "requests"  # "requests" | "crawl4ai"
     crawl4ai_server_url: Optional[str] = None  # e.g. "http://192.168.1.100:11235"
     crawl4ai_fallback: bool = True             # fall back to requests on crawl4ai failure
+    max_targets_per_run: int = 500            # 0 = unlimited
 
 
 class ScrapingConfigCreate(ScrapingConfigBase):
@@ -153,3 +155,46 @@ class ScrapingConfig(ScrapingConfigBase):
 
     class Config:
         orm_mode = True
+
+
+DEFAULT_SYSTEM_PROMPT = """Du bist ein Experte für kommunale Bauleitplanung und Grundstücksentwicklung in Deutschland.
+Analysiere die folgenden Scraping-Ergebnisse und fasse die wichtigsten Informationen zusammen.
+Fokussiere dich auf: Baugebiete, Bebauungspläne, Flächennutzungspläne, Grundstücksverkäufe, Ausschreibungen.
+Gib eine strukturierte Zusammenfassung auf Deutsch aus. Hebe besonders interessante oder dringende Themen hervor."""
+
+
+class AIConfigBase(BaseModel):
+    provider: str = "openrouter"
+    api_key: str
+    base_url: Optional[str] = None
+    model_name: str = "openai/gpt-4o-mini"
+    system_prompt: Optional[str] = None
+    enabled: bool = True
+
+
+class AIConfigCreate(AIConfigBase):
+    pass
+
+
+class AIConfigResponse(AIConfigBase):
+    id: int
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class AIAnalysisResponse(BaseModel):
+    id: int
+    created_at: datetime
+    result_text: Optional[str] = None
+    result_count: Optional[int] = None
+    mode: str
+
+    class Config:
+        from_attributes = True
+
+
+class AIAnalyzeRequest(BaseModel):
+    result_ids: List[int]
+    mode: str = "summary"

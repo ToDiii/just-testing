@@ -18,6 +18,7 @@ class TargetSite(Base):
     region_id = Column(Integer, ForeignKey("regions.id"), nullable=True)
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
+    source_type = Column(String, default="website")  # "website" | "rss"
     added_at = Column(DateTime, default=datetime.utcnow)
     last_scraped_at = Column(DateTime, nullable=True)
 
@@ -96,7 +97,34 @@ class ScrapingConfig(Base):
     crawl4ai_server_url = Column(String, nullable=True)
     # If True, fall back to requests engine when Crawl4AI fails
     crawl4ai_fallback = Column(Integer, default=1)
+    # Limit how many targets are scraped per run (0 = unlimited)
+    max_targets_per_run = Column(Integer, default=500)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class AIConfig(Base):
+    __tablename__ = "ai_configs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    provider = Column(String, default="openrouter")  # openrouter | openai | anthropic | custom
+    api_key = Column(String, nullable=False)
+    base_url = Column(String, nullable=True)  # for custom provider
+    model_name = Column(String, default="openai/gpt-4o-mini")
+    system_prompt = Column(Text, nullable=True)
+    enabled = Column(Integer, default=1)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class AIAnalysis(Base):
+    __tablename__ = "ai_analyses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    prompt_used = Column(Text, nullable=True)
+    result_text = Column(Text, nullable=True)
+    result_count = Column(Integer, nullable=True)
+    target_ids_json = Column(Text, nullable=True)
+    mode = Column(String, default="summary")  # "summary" | "detail"
 
 
 class Region(Base):
