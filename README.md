@@ -38,6 +38,12 @@ Dieser Befehl führt automatisch ein `git pull` aus, aktualisiert alle Python- u
 
 *(Alternativ, für manuelle Setups: `/opt/just-testing/update.sh` ausführen)*
 
+**Hinweis für bestehende (alte) Installationen:**
+Falls deine Installation älter ist und den Befehl noch nicht kennt, rüste ihn mit diesem Einzeiler einmalig nach:
+```bash
+cd /opt/just-testing && git pull origin main && chmod +x update.sh && ln -sf /opt/just-testing/update.sh /usr/local/bin/update && update
+```
+
 ---
 
 ## Features
