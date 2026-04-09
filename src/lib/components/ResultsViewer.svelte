@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import { api } from "../api";
+  import { marked } from "marked";
   import { uiState, t } from "../stores";
 
   export let forcedTargetIds: number[] | null = null;
@@ -246,8 +247,8 @@
     }, 50);
   }
 
-  async function fetchResults() {
-    isLoading = true;
+  async function fetchResults(silent = false) {
+    if (!silent) isLoading = true;
     errorMessage = "";
     const params = new URLSearchParams();
     if ($uiState.filterSearch) params.append("search", $uiState.filterSearch);
@@ -266,19 +267,22 @@
     } catch (error) {
       errorMessage = (error as Error).message;
     } finally {
-      isLoading = false;
+      if (!silent) isLoading = false;
     }
   }
 
   async function fetchStatus() {
     try {
+      const wasScraping = $uiState.isScraping;
       const status = await api("/api/scrape/status");
       $uiState.isScraping = status.scrape_status === "running";
-      if ($uiState.isScraping && !logPollingInterval) {
-        startPolling();
+      
+      if ($uiState.isScraping) {
+        if (!logPollingInterval) startPolling();
+        fetchResults(true); // seamlessly load new results during scrape
       } else if (!$uiState.isScraping && logPollingInterval) {
-        // Stop polling after a small delay to get final logs
         setTimeout(stopPolling, 3000);
+        if (wasScraping) fetchResults(true);
       }
     } catch (error) {
       console.error("Failed to fetch status:", error);
@@ -899,7 +903,9 @@
           </div>
         {:else if aiAnalysisResult}
           <div class="overflow-auto flex-1">
-            <pre class="bg-gray-50 rounded-lg p-4 text-sm whitespace-pre-wrap leading-relaxed">{aiAnalysisResult}</pre>
+            <div class="bg-gray-50 rounded-lg p-5 text-sm leading-relaxed [&>p]:mb-4 [&>h1]:text-lg [&>h1]:font-bold [&>h2]:text-md [&>h2]:font-bold [&>h3]:font-bold [&>ul]:list-disc [&>ul]:pl-5 [&>ul]:mb-4 [&>ol]:list-decimal [&>ol]:pl-5 [&>ol]:mb-4 [&>li]:mb-1 [&_strong]:font-bold text-gray-800">
+              {@html marked.parse(aiAnalysisResult)}
+            </div>
           </div>
         {:else}
           <div class="text-center py-12 text-gray-400">
@@ -931,7 +937,9 @@
                     <span class="text-xs text-gray-400">{entry.result_count} Ergebnisse · {entry.mode}</span>
                   </div>
                 </div>
-                <pre class="p-4 text-sm whitespace-pre-wrap bg-white leading-relaxed max-h-48 overflow-auto">{entry.result_text}</pre>
+                <div class="p-5 text-sm bg-white leading-relaxed max-h-64 overflow-auto [&>p]:mb-4 [&>h1]:text-lg [&>h1]:font-bold [&>h2]:text-md [&>h2]:font-bold [&>h3]:font-bold [&>ul]:list-disc [&>ul]:pl-5 [&>ul]:mb-4 [&>ol]:list-decimal [&>ol]:pl-5 [&>ol]:mb-4 [&>li]:mb-1 [&_strong]:font-bold text-gray-800">
+                  {@html marked.parse(entry.result_text)}
+                </div>
               </div>
             {/each}
           </div>
