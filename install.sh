@@ -109,7 +109,13 @@ systemctl daemon-reload
 systemctl enable --now just-testing.service &>/dev/null
 msg_ok "Service enabled and started."
 
-# --- 8. Final Message ---
+# --- 8. Create Update Command ---
+msg_info "Setting up the 'update' command..."
+chmod +x /opt/just-testing/update.sh
+ln -sf /opt/just-testing/update.sh /usr/local/bin/update
+msg_ok "Update command created. You can now use 'update' to get the latest changes."
+
+# --- 9. Final Message ---
 IP=$(hostname -I | awk '{print $1}')
 echo -e "\n${BGN}Installation Complete!${CE}\n"
 echo -e "You can access the application at: ${GN}http://${IP}:8000${CE}"

@@ -28,17 +28,15 @@ docker-compose exec app python3 seed_db.py   # Testdaten laden
 
 ### Server-Update (nach neuen Commits auf `main`)
 
+Für Proxmox LXC Container reicht nun ein einfacher Befehl im Terminal (als Root):
+
 ```bash
-cd /opt/just-testing
-git pull origin main
-source venv/bin/activate
-pip install -r requirements.txt    # bei neuen Python-Paketen
-deactivate
-npm install --legacy-peer-deps     # bei neuen JS-Paketen
-npm run build
-chown -R just-testing:just-testing /opt/just-testing
-systemctl restart just-testing
+update
 ```
+
+Dieser Befehl führt automatisch ein `git pull` aus, aktualisiert alle Python- und Node-Pakete, baut das Svelte-Frontend neu und startet den Dienst (Service) neu.
+
+*(Alternativ, für manuelle Setups: `/opt/just-testing/update.sh` ausführen)*
 
 ---
 
