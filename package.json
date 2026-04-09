@@ -26,6 +26,7 @@
   "dependencies": {
     "leaflet": "^1.9.4",
     "maplibre-gl": "^3.5.0",
+    "marked": "^18.0.0",
     "svelte-leafletjs": "^1.2.0"
   }
 }
